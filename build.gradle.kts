@@ -26,7 +26,7 @@ dependencies {
     implementation("org.jetbrains.jediterm:jediterm-ui:3.64")
     // 协程 Swing 调度器 / JSON 存储
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
-    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation(files("libs-repo/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 }
 
