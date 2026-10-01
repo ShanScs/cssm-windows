@@ -35,8 +35,22 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Cssm"
+            vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
+            windows {
+                menu = true
+                // 开始菜单里建 "Cssm" 文件夹：应用和卸载入口分开放，
+                // 避免快捷方式被归到名字奇怪的分组（jpackage 默认按 vendor 分组）
+                menuGroup = "Cssm"
+                // 固定升级 UUID：同一个应用必须永远不变。
+                // 之前没配它，jpackage 每次构建都随机生成一个，
+                // Windows 会把每个构建当成毫不相干的新产品并排安装——
+                // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
+                upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
+                // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
+                msiPackageVersion = "1.0.1"
+            }
         }
     }
 }
