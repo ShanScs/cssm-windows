@@ -4,20 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,13 +24,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ssh.SshConnection
 import com.cssm.desktop.ssh.StatsCollector
+import com.cssm.desktop.ui.components.IpadTitle
+import com.cssm.desktop.ui.components.RegionSegment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -47,7 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 指标页：所有服务器的实时监控卡片网格。
+ * 指标页（iPad 风格）：标题 + 地区分段 + All Servers 汇总卡 + 三列服务器卡片。
  * 每台服务器一条采集用 SSH 长连接，每 3 秒采样一次。
  */
 @Composable
@@ -81,23 +75,14 @@ fun MetricsScreen(
         states.keys.filter { it !in ids }.forEach { repo.remove(it) }
     }
 
-    if (servers.isEmpty()) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "还没有服务器，去服务器页点击 + 添加",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        return
-    }
-
-    // 地区过滤：按 region 分组
     val regions = remember(servers) {
         servers.map { it.region.ifBlank { "未知" } }.distinct()
+            .map { region ->
+                val flag = servers.firstOrNull {
+                    (it.region.ifBlank { "未知" }) == region
+                }?.regionFlag.orEmpty()
+                region to flag
+            }
     }
     var selectedRegion by remember { mutableStateOf<String?>(null) }
     val filtered = remember(servers, selectedRegion) {
@@ -105,80 +90,57 @@ fun MetricsScreen(
         else servers.filter { (it.region.ifBlank { "未知" }) == selectedRegion }
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 340.dp),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // 标题
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "指标",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 4.dp)
+    Column(modifier = modifier.fillMaxSize()) {
+        IpadTitle(
+            text = "指标",
+            modifier = Modifier.padding(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 8.dp)
+        )
+        if (servers.isNotEmpty()) {
+            RegionSegment(
+                regions = regions,
+                selected = selectedRegion,
+                onSelect = { selectedRegion = it },
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
-        // 地区过滤
-        if (regions.size > 1) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RegionChip(
-                        label = "ALL",
-                        selected = selectedRegion == null,
-                        onClick = { selectedRegion = null }
-                    )
-                    regions.forEach { region ->
-                        val flag = servers.firstOrNull {
-                            (it.region.ifBlank { "未知" }) == region
-                        }?.regionFlag.orEmpty()
-                        RegionChip(
-                            label = if (flag.isNotBlank()) "$region $flag" else region,
-                            selected = selectedRegion == region,
-                            onClick = { selectedRegion = region }
-                        )
-                    }
-                }
+
+        if (servers.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "还没有服务器，去「更多 → 服务器」点击 + 添加",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            return
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item(span = { GridItemSpan(3) }) {
+                SummaryCard(
+                    servers = filtered,
+                    states = states,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            items(filtered, key = { it.id }) { server ->
+                ServerMetricCard(
+                    server = server,
+                    metrics = states[server.id],
+                    onOpen = { onOpen(server.id) }
+                )
             }
         }
-        // 汇总卡片
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            SummaryCard(
-                servers = filtered,
-                states = states,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        // 服务器卡片
-        items(filtered, key = { it.id }) { server ->
-            ServerMetricCard(
-                server = server,
-                metrics = states[server.id],
-                onOpen = { onOpen(server.id) }
-            )
-        }
     }
-}
-
-@Composable
-private fun RegionChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, fontSize = 13.sp) },
-        shape = RoundedCornerShape(16.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    )
 }
 
 /**

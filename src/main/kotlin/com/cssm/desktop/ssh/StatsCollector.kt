@@ -8,6 +8,7 @@ package com.cssm.desktop.ssh
  */
 data class MonitorStats(
     val cpuPercent: Double,
+    val cpuCores: Int = 0,
     val memPercent: Double,
     val memUsedMb: Long,
     val memTotalMb: Long,
@@ -172,8 +173,11 @@ class StatsCollector {
             prevAt = now
             hasPrev = true
 
+            val cpuCores = sections["CORE"]?.toString()?.trim()?.toIntOrNull() ?: 0
+
             MonitorStats(
                 cpuPercent = cpuPercent,
+                cpuCores = cpuCores,
                 memPercent = memPercent.coerceIn(0.0, 100.0),
                 memUsedMb = memUsedMb.coerceAtLeast(0),
                 memTotalMb = memTotalMb.coerceAtLeast(0),
@@ -215,6 +219,7 @@ class StatsCollector {
             "printf '==DISK==\\n'; df -k / | tail -n 1; " +
             "printf '==NET==\\n'; cat /proc/net/dev; " +
             "printf '==IO==\\n'; cat /proc/diskstats; " +
+            "printf '==CORE==\\n'; nproc 2>/dev/null || echo 0; " +
             "printf '==LOAD==\\n'; cat /proc/loadavg; " +
             "printf '==UPTIME==\\n'; cat /proc/uptime"
     }

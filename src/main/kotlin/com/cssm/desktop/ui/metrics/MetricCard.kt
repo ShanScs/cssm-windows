@@ -1,6 +1,5 @@
 package com.cssm.desktop.ui.metrics
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,11 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,81 +16,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.ssh.MonitorStats
+import com.cssm.desktop.ui.components.IpadCard
+import com.cssm.desktop.ui.components.IpadRing
 import com.cssm.desktop.ui.components.OsBadge
-import kotlin.math.min
+import com.cssm.desktop.ui.components.ipadName
+import com.cssm.desktop.ui.components.osDisplayName
+import kotlin.math.roundToInt
 
 /**
- * 指标圆环：CPU / 内存 / 磁盘用。
- */
-@Composable
-fun MetricRing(
-    label: String,
-    fraction: Double,
-    value: String,
-    sub: String,
-    color: Color,
-    size: Dp = 64.dp
-) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier.size(size),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.size(size)) {
-                val stroke = 7.dp.toPx()
-                // 底环
-                drawArc(
-                    color = track,
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    style = Stroke(stroke, cap = StrokeCap.Round)
-                )
-                // 进度环
-                val f = min(1.0, fraction.coerceIn(0.0, 1.0)).toFloat()
-                if (f > 0f) {
-                    drawArc(
-                        color = color,
-                        startAngle = -90f,
-                        sweepAngle = 360f * f,
-                        useCenter = false,
-                        style = Stroke(stroke, cap = StrokeCap.Round)
-                    )
-                }
-            }
-            Text(
-                text = value,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = sub,
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-    }
-}
-
-/**
- * 单台服务器的指标卡片。
- * 参考 NeoServer iPad 的卡片信息密度，按 Cssm 自己的视觉语言实现。
+ * 单台服务器的指标卡片（iPad 风格）：
+ * 标题行 = 系统图标 + 地区国旗名称 + OS / 右侧 Uptime + 箭头；
+ * 主体 = CPU / Mem / 磁盘小圆环 + 网络 / I/O 四行数值。
  */
 @Composable
 fun ServerMetricCard(
@@ -107,93 +44,60 @@ fun ServerMetricCard(
     val stats: MonitorStats? = metrics?.stats
     val online = metrics?.online != false
     val hasData = stats != null
+    val dimmed = !online && metrics != null
 
-    // 指标配色跟随主题
-    val cpuColor = MaterialTheme.colorScheme.primary
-    val memColor = MaterialTheme.colorScheme.tertiary
-    val diskColor = MaterialTheme.colorScheme.secondary
-    val offlineGray = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Card(
+    IpadCard(
         modifier = modifier
-            .alpha(if (!online && metrics != null) 0.6f else 1f)
-            .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .alpha(if (dimmed) 0.6f else 1f)
+            .clickable(onClick = onOpen)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // 标题行：系统图标 + 国旗 + 名称 ... 运行时间
+            // 标题行
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OsBadge(osId = server.osId, size = 36.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    val flag = server.regionFlag.ifBlank { "" }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (server.region.isNotBlank()) {
-                            Text(
-                                text = server.region,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        Text(
-                            text = if (flag.isNotBlank()) "${server.displayName} $flag" else server.displayName,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    val osName = server.osName.ifBlank {
-                        when (server.osId) {
-                            "ubuntu" -> "Ubuntu"
-                            "debian" -> "Debian"
-                            "centos", "rhel", "rocky", "almalinux" -> server.osId.replaceFirstChar { it.uppercase() }
-                            "freebsd" -> "FreeBSD"
-                            else -> ""
-                        }
-                    }
+                    Text(
+                        text = server.ipadName(),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(2.dp))
                     if (!online && metrics != null) {
                         Text(
                             text = "● 离线",
                             fontSize = 12.sp,
-                            color = Color(0xFFF87171)
+                            color = Color(0xFFFF453A)
                         )
                     } else {
-                        val dot = if (online) "● " else "● "
-                        val dotColor = if (online) Color(0xFF34C77B) else Color(0xFFE8933C)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = dot, fontSize = 10.sp, color = dotColor)
-                            if (osName.isNotBlank()) {
-                                Text(
-                                    text = osName,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        val os = osDisplayName(server.osId, server.osName)
+                        if (os.isNotBlank()) {
+                            Text(
+                                text = os,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    if (hasData) {
-                        Text(
-                            text = "Uptime ${stats!!.uptimeText}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "Uptime",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = "›",
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
 
             // 指标区
             Row(
@@ -203,81 +107,74 @@ fun ServerMetricCard(
             ) {
                 if (hasData) {
                     val s = stats!!
-                    val m = metrics!!
-                    MetricRing(
+                    val usedCores = if (s.cpuCores > 0) {
+                        "${(s.cpuPercent / 100 * s.cpuCores).roundToInt()} C"
+                    } else ""
+                    IpadRing(
                         label = "CPU",
-                        fraction = s.cpuPercent / 100,
-                        value = "${s.cpuPercent.toInt()}%",
-                        sub = "",
-                        color = cpuColor
+                        pct = s.cpuPercent,
+                        sub = usedCores,
+                        size = 48.dp
                     )
-                    MetricRing(
-                        label = "Memory",
-                        fraction = s.memPercent / 100,
-                        value = "${s.memPercent.toInt()}%",
+                    IpadRing(
+                        label = "Mem",
+                        pct = s.memPercent,
                         sub = formatGb(s.memUsedMb / 1024.0),
-                        color = memColor
+                        size = 48.dp
                     )
-                    MetricRing(
-                        label = "Disk",
-                        fraction = s.diskPercent / 100,
-                        value = "${s.diskPercent.toInt()}%",
+                    IpadRing(
+                        label = "磁盘",
+                        pct = s.diskPercent,
                         sub = formatGb(s.diskUsedGb),
-                        color = diskColor
+                        size = 48.dp
                     )
                     NetStatCol(
-                        label = "Network",
-                        down = "↓ ${formatRate(s.rxBytesPerSec)}",
-                        up = "↑ ${formatRate(s.txBytesPerSec)}",
-                        color = cpuColor,
-                        sparkDown = m.rxHistory,
-                        sparkUp = m.txHistory
+                        label = "网络",
+                        upRate = formatBytes(s.txBytesPerSec),
+                        upTotal = formatBytes(s.txTotalBytes),
+                        downRate = formatBytes(s.rxBytesPerSec),
+                        downTotal = formatBytes(s.rxTotalBytes)
                     )
                     NetStatCol(
                         label = "I/O",
-                        down = "↓ ${formatRate(s.ioReadBytesPerSec)}",
-                        up = "↑ ${formatRate(s.ioWriteBytesPerSec)}",
-                        color = diskColor,
-                        sparkDown = m.ioReadHistory,
-                        sparkUp = m.ioWriteHistory,
-                        areaChart = true
+                        upRate = formatBytes(s.ioWriteBytesPerSec),
+                        upTotal = formatBytes(s.ioWriteTotalBytes),
+                        downRate = formatBytes(s.ioReadBytesPerSec),
+                        downTotal = formatBytes(s.ioReadTotalBytes)
                     )
                 } else {
-                    MetricRing(label = "CPU", fraction = 0.0, value = "--", sub = "", color = offlineGray)
-                    MetricRing(label = "Memory", fraction = 0.0, value = "--", sub = "", color = offlineGray)
-                    MetricRing(label = "Disk", fraction = 0.0, value = "--", sub = "", color = offlineGray)
-                    NetStatCol(label = "Network", down = "↓ --", up = "↑ --", color = offlineGray)
-                    NetStatCol(label = "I/O", down = "↓ --", up = "↑ --", color = offlineGray)
+                    IpadRing(label = "CPU", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
+                    IpadRing(label = "Mem", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
+                    IpadRing(label = "磁盘", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
+                    NetStatCol(label = "网络", upRate = "--", upTotal = "", downRate = "--", downTotal = "")
+                    NetStatCol(label = "I/O", upRate = "--", upTotal = "", downRate = "--", downTotal = "")
                 }
             }
         }
     }
 }
 
+/** 网络 / I/O 四行数值列：↑速率 / ↑累计 / ↓速率 / ↓累计 */
 @Composable
 private fun NetStatCol(
     label: String,
-    up: String,
-    down: String,
-    color: Color,
-    sparkDown: List<Long> = emptyList(),
-    sparkUp: List<Long> = emptyList(),
-    areaChart: Boolean = false
+    upRate: String,
+    upTotal: String,
+    downRate: String,
+    downTotal: String
 ) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onVariant = MaterialTheme.colorScheme.onSurfaceVariant
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(text = label, fontSize = 11.sp, color = onVariant)
         Spacer(Modifier.height(4.dp))
-        Text(text = down, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = up, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(4.dp))
-        if (areaChart) {
-            AreaChart(values = sparkDown + sparkUp, width = 64.dp, height = 24.dp)
-        } else {
-            Sparkline(down = sparkDown, up = sparkUp, width = 64.dp, height = 24.dp)
+        Text(text = "↑$upRate", fontSize = 11.sp, color = onSurface, maxLines = 1)
+        if (upTotal.isNotEmpty()) {
+            Text(text = upTotal, fontSize = 10.sp, color = onVariant, maxLines = 1)
+        }
+        Text(text = "↓$downRate", fontSize = 11.sp, color = onSurface, maxLines = 1)
+        if (downTotal.isNotEmpty()) {
+            Text(text = downTotal, fontSize = 10.sp, color = onVariant, maxLines = 1)
         }
     }
 }

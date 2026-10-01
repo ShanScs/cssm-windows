@@ -18,8 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,7 +59,8 @@ fun ServersScreen(
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onSftp: (Long) -> Unit,
-    onDocker: (Long) -> Unit
+    onDocker: (Long) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val servers by store.servers.collectAsState()
     val scope = rememberCoroutineScope()
@@ -74,7 +79,18 @@ fun ServersScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("服务器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "返回",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                Text("服务器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = {
                     editing = !editing
