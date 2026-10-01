@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -143,17 +141,15 @@ fun ServerMetricCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // 下排：实时网速 / 总用量 / I/O，等高三卡
+            // 下排：实时网速 / 总用量 / I/O，各按内容自然高度，顶部对齐
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Max),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (hasData) {
                     val s = stats!!
                     val mm = m!!
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "实时网速",
                             down = "↓${formatRate(s.rxBytesPerSec)}",
@@ -165,7 +161,7 @@ fun ServerMetricCard(
                             stacked = true
                         )
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "总用量",
                             down = "↓${formatBytes(s.rxTotalBytes)}",
@@ -176,7 +172,7 @@ fun ServerMetricCard(
                             stacked = true
                         )
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "I/O",
                             down = "↓${formatRate(s.ioReadBytesPerSec)}",
@@ -189,7 +185,7 @@ fun ServerMetricCard(
                         )
                     }
                 } else {
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "实时网速",
                             down = "↓—",
@@ -199,7 +195,7 @@ fun ServerMetricCard(
                             stacked = true
                         )
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "总用量",
                             down = "↓—",
@@ -210,7 +206,7 @@ fun ServerMetricCard(
                             stacked = true
                         )
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "I/O",
                             down = "↓—",

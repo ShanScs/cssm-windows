@@ -41,7 +41,7 @@ fun NetDottedPanel(
     val variant = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = label, fontSize = 12.sp, color = variant)
         Spacer(Modifier.height(6.dp))
