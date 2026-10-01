@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,9 @@ private val cardPalettes = listOf(
 fun Server.cardPalette(): Pair<Color, Color> =
     cardPalettes[(id.hashCode().absoluteValue) % cardPalettes.size]
 
+/** 两种卡片统一高度：名称顶对齐，底部信息沉底 */
+private val cardHeight = 112.dp
+
 /** 相对时间：刚刚 / X分钟前 / X小时前 / X天前 */
 fun relativeTime(ts: Long): String {
     if (ts <= 0) return "未连接"
@@ -72,9 +76,10 @@ fun ServerResourceCard(
             .clip(RoundedCornerShape(14.dp))
             .background(Brush.horizontalGradient(listOf(c1, c2)))
             .clickable(onClick = onClick)
+            .height(cardHeight)
             .padding(14.dp)
     ) {
-        Column {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = server.ipadName(),
@@ -95,7 +100,7 @@ fun ServerResourceCard(
                 Spacer(Modifier.width(10.dp))
                 OsBadge(osId = server.osId, size = 30.dp)
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -145,9 +150,10 @@ fun FolderResourceCard(
                 )
             )
             .clickable(onClick = onClick)
+            .height(cardHeight)
             .padding(14.dp)
     ) {
-        Column {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = title,
@@ -166,7 +172,7 @@ fun FolderResourceCard(
                     modifier = Modifier.size(30.dp)
                 )
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.weight(1f))
             Text(
                 text = subtitle,
                 fontSize = 11.sp,

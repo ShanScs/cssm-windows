@@ -50,17 +50,18 @@ fun statusColor(pct: Double): Color = when {
     else -> Color(0xFFFF453A)
 }
 
-/** iPad 风格服务器名：地区+国旗+名称，如「美国🇺🇸洛杉矶」 */
+/** iPad 风格服务器名：国旗在前，如「🇺🇸美国洛杉矶」「🇦🇺澳洲AU」 */
 fun Server.ipadName(): String {
     val r = region.trim()
     val n = name.trim().ifBlank { host }
-    if (r.isEmpty()) return n
-    val flag = regionFlag.trim()
-    return when {
-        r.startsWith(n) -> "$r$flag"   // 如地区「澳洲AU」已含名称「澳洲」，只显示地区
-        n.startsWith(r) -> "$flag$n"   // 名称已含地区时只显示名称
-        else -> "$r$flag$n"
+    val base = when {
+        r.isEmpty() -> n
+        r.startsWith(n) -> r   // 如地区「澳洲AU」已含名称「澳洲」，只显示地区
+        n.startsWith(r) -> n   // 名称已含地区时只显示名称
+        else -> "$r$n"
     }
+    val flag = regionFlag.trim()
+    return if (flag.isEmpty()) base else "$flag$base"
 }
 
 /** 大标题，如「指标」 */
@@ -75,7 +76,7 @@ fun IpadTitle(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** 地区分段选择：ALL | 美国🇺🇸 | 波兰🇵🇱 */
+/** 地区分段选择：ALL | 🇺🇸美国 | 🇵🇱波兰 */
 @Composable
 fun RegionSegment(
     regions: List<Pair<String, String>>,
@@ -92,7 +93,7 @@ fun RegionSegment(
     ) {
         SegmentItem(label = "ALL", selected = selected == null, onClick = { onSelect(null) })
         regions.forEach { (region, flag) ->
-            val label = if (flag.isNotBlank()) "$region$flag" else region
+            val label = if (flag.isNotBlank()) "$flag$region" else region
             SegmentItem(label = label, selected = selected == region, onClick = { onSelect(region) })
         }
     }

@@ -1,5 +1,6 @@
 package com.cssm.desktop.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -9,19 +10,23 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.skia.Image as SkiaImage
 
 
 /**
- * 操作系统徽标：Debian 用官网官方旋涡 logo（无底直接摆）；
- * 其他系统用原创设计（品牌色圆形底 + 白色系统首字母），不使用官方 logo 图片资源。
+ * 操作系统徽标：优先使用官网官方 logo（base64 内嵌于 OsLogos.kt），
+ * 没有官方 logo 的系统沿用品牌色字母徽标，未知系统显示服务器堆叠图标。
  */
 @Composable
 fun OsBadge(
@@ -29,6 +34,15 @@ fun OsBadge(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp
 ) {
+    val logo = remember(osId) { osLogoBitmap(osId) }
+    if (logo != null) {
+        Image(
+            bitmap = logo,
+            contentDescription = null,
+            modifier = modifier.size(size)
+        )
+        return
+    }
     val (bg, letter) = osStyle(osId)
     Box(
         modifier = modifier
@@ -52,6 +66,43 @@ fun OsBadge(
                 fontWeight = FontWeight.Bold,
                 fontSize = (size.value * 0.45f).sp
             )
+        }
+    }
+}
+
+/** osId -> 官方 logo 文件名；没有官方 logo 时返回 null，调用方用字母徽标兜底 */
+private fun osLogoFile(osId: String): String? = when (osId.lowercase()) {
+    "ubuntu" -> "ubuntu.png"
+    "debian" -> "debian.png"
+    "centos", "centos-stream" -> "centos.png"
+    "rhel", "redhat" -> "rhel.png"
+    "fedora" -> "fedora.png"
+    "alpine" -> "alpine.png"
+    "arch", "archarm" -> "arch.png"
+    "opensuse", "opensuse-leap", "opensuse-tumbleweed" -> "opensuse.png"
+    "rocky" -> "rocky.png"
+    "almalinux" -> "almalinux.png"
+    "oracle" -> "oracle.png"
+    "amzn", "amazon" -> "amazon.png"
+    "gentoo" -> "gentoo.png"
+    "void" -> "void.png"
+    "nixos" -> "nixos.png"
+    "freebsd" -> "freebsd.png"
+    else -> null
+}
+
+private val osLogoCache = mutableMapOf<String, ImageBitmap?>()
+
+/** 从内嵌 base64 解码官方 logo；缺失或解码失败返回 null */
+private fun osLogoBitmap(osId: String): ImageBitmap? {
+    val key = osId.lowercase()
+    return osLogoCache.getOrPut(key) {
+        val file = osLogoFile(key) ?: return@getOrPut null
+        try {
+            val bytes = java.util.Base64.getDecoder().decode(OS_LOGO_BASE64[file.removeSuffix(".png")])
+            SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
+        } catch (_: Exception) {
+            null
         }
     }
 }
