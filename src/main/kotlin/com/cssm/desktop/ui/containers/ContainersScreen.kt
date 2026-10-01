@@ -52,7 +52,7 @@ import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.IpadTitle
 import com.cssm.desktop.ui.components.OsBadge
 import com.cssm.desktop.ui.components.RegionSegment
-import com.cssm.desktop.ui.components.ipadName
+import com.cssm.desktop.ui.components.ServerNameWithFlag
 import kotlinx.coroutines.launch
 
 /**
@@ -157,13 +157,11 @@ private fun ContainerServerCard(
                 OsBadge(osId = server.osId, size = 34.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = server.ipadName(),
+                    ServerNameWithFlag(
+                        server = server,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

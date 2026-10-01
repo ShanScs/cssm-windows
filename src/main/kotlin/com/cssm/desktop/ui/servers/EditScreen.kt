@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.cssm.desktop.ui.components.FlagImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -144,14 +145,29 @@ fun EditScreen(
             Text("地区", style = MaterialTheme.typography.labelLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(onClick = { regionMenu = true }) {
-                    Text(region?.label ?: "未设置")
+                    val sel = region
+                    if (sel == null) {
+                        Text("未设置")
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            FlagImage(flag = sel.flag, height = 12.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(sel.name)
+                        }
+                    }
                 }
                 DropdownMenu(expanded = regionMenu, onDismissRequest = { regionMenu = false }) {
                     DropdownMenuItem(text = { Text("未设置") }, onClick = {
                         region = null; regionMenu = false
                     })
                     REGIONS.forEach { r ->
-                        DropdownMenuItem(text = { Text(r.label) }, onClick = {
+                        DropdownMenuItem(text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                FlagImage(flag = r.flag, height = 12.dp)
+                                Spacer(Modifier.width(6.dp))
+                                Text(r.name)
+                            }
+                        }, onClick = {
                             region = r; regionMenu = false
                         })
                     }

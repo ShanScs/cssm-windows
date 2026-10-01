@@ -81,13 +81,11 @@ fun ServerResourceCard(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = server.ipadName(),
+                ServerNameWithFlag(
+                    server = server,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF1C1C1E),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 Spacer(Modifier.width(5.dp))

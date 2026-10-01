@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cssm.desktop.data.Server
 import kotlin.math.min
 
 /** iPad 风格的 iOS 蓝：浅色 #007AFF / 深色 #0A84FF */
@@ -48,20 +47,6 @@ fun statusColor(pct: Double): Color = when {
     pct < 60 -> Color(0xFF34C77B)
     pct < 85 -> Color(0xFFFF9F0A)
     else -> Color(0xFFFF453A)
-}
-
-/** iPad 风格服务器名：国旗在前，如「🇺🇸美国洛杉矶」「🇦🇺澳洲AU」 */
-fun Server.ipadName(): String {
-    val r = region.trim()
-    val n = name.trim().ifBlank { host }
-    val base = when {
-        r.isEmpty() -> n
-        r.startsWith(n) -> r   // 如地区「澳洲AU」已含名称「澳洲」，只显示地区
-        n.startsWith(r) -> n   // 名称已含地区时只显示名称
-        else -> "$r$n"
-    }
-    val flag = regionFlag.trim()
-    return if (flag.isEmpty()) base else "$flag$base"
 }
 
 /** 大标题，如「指标」 */
@@ -93,14 +78,23 @@ fun RegionSegment(
     ) {
         SegmentItem(label = "ALL", selected = selected == null, onClick = { onSelect(null) })
         regions.forEach { (region, flag) ->
-            val label = if (flag.isNotBlank()) "$flag$region" else region
-            SegmentItem(label = label, selected = selected == region, onClick = { onSelect(region) })
+            SegmentItem(
+                flag = flag,
+                label = region,
+                selected = selected == region,
+                onClick = { onSelect(region) }
+            )
         }
     }
 }
 
 @Composable
-private fun SegmentItem(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun SegmentItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    flag: String = "",
+) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -109,15 +103,21 @@ private fun SegmentItem(label: String, selected: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (flag.isNotBlank()) {
+                FlagImage(flag = flag, height = 12.dp)
+                Spacer(Modifier.width(5.dp))
+            }
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (selected) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

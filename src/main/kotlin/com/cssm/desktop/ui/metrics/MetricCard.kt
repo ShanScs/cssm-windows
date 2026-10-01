@@ -25,7 +25,7 @@ import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadRing
 import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.OsBadge
-import com.cssm.desktop.ui.components.ipadName
+import com.cssm.desktop.ui.components.ServerNameWithFlag
 import com.cssm.desktop.ui.components.osDisplayName
 import kotlin.math.roundToInt
 
@@ -58,13 +58,11 @@ fun ServerMetricCard(
                 OsBadge(osId = server.osId, size = 36.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = server.ipadName(),
+                    ServerNameWithFlag(
+                        server = server,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(2.dp))
                     // 第二行：状态点 + 系统名（iPad 风格；未知系统显示占位文案）
