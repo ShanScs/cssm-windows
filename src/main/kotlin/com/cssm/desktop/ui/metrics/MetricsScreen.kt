@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 指标页（iPad 风格）：标题 + 地区分段 + All Servers 汇总卡 + 三列服务器卡片。
+ * 指标页（iPad 风格）：标题 + 地区分段 + 三列服务器卡片。
  * 每台服务器一条采集用 SSH 长连接，每 3 秒采样一次。
  */
 @Composable
@@ -125,13 +124,6 @@ fun MetricsScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item(span = { GridItemSpan(3) }) {
-                SummaryCard(
-                    servers = filtered,
-                    states = states,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
             items(filtered, key = { it.id }) { server ->
                 ServerMetricCard(
                     server = server,

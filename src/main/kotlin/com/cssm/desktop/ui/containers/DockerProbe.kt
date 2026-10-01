@@ -25,7 +25,8 @@ sealed interface DockerCardStatus {
 }
 
 private const val PROBE_CMD =
-    "printf 'S\\n'; docker ps -a --format '{{.State}}' 2>/dev/null; " +
+    // ps 的 stderr 保留（2>&1）：daemon 未运行 / 无权限时的报错要能被识别出来
+    "printf 'S\\n'; docker ps -a --format '{{.State}}' 2>&1; " +
         "printf 'I\\n'; docker images -q 2>/dev/null; " +
         "printf 'N\\n'; docker network ls -q 2>/dev/null; " +
         "printf 'V\\n'; docker volume ls -q 2>/dev/null; printf 'E\\n'"
@@ -33,10 +34,27 @@ private const val PROBE_CMD =
 suspend fun probeDocker(server: Server): DockerCardStatus {
     val conn = SshConnection()
     return try {
-        withTimeout(25_000) {
+        withTimeout(30_000) {
             withContext(Dispatchers.IO) {
                 conn.connect(server, 80, 24)
-                parseProbe(conn.exec(PROBE_CMD, 20))
+                // 先确认装没装 docker，避免把“没装”误报成其他错误
+                val which = conn.exec("command -v docker 2>/dev/null || echo NO_DOCKER", 10).trim()
+                if (which.isEmpty() || which == "NO_DOCKER") {
+                    return@withContext DockerCardStatus.Failed("未安装 Docker")
+                }
+                val out = conn.exec(PROBE_CMD, 20)
+                val errLine = out.lineSequence().map { it.trim() }.firstOrNull {
+                    it.contains("Cannot connect to the Docker daemon", ignoreCase = true) ||
+                        it.contains("Is the docker daemon running", ignoreCase = true) ||
+                        it.contains("permission denied", ignoreCase = true)
+                }
+                if (errLine != null) {
+                    val reason = if (errLine.contains("permission denied", ignoreCase = true))
+                        "无权限访问 Docker（需加入 docker 组或使用 sudo）"
+                    else "Docker daemon 未运行"
+                    return@withContext DockerCardStatus.Failed(reason)
+                }
+                parseProbe(out)
             }
         }
     } catch (e: Exception) {
