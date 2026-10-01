@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,8 @@ fun MetricsScreen(
 ) {
     val servers by store.servers.collectAsState()
     val states by repo.states.collectAsState()
+    val ping by CarrierPing.state.collectAsState()
+    val pingScope = rememberCoroutineScope()
 
     // 服务器被删除时清理状态
     LaunchedEffect(servers) {
@@ -102,7 +105,9 @@ fun MetricsScreen(
                 ServerMetricCard(
                     server = server,
                     metrics = states[server.id],
-                    onOpen = { onOpen(server.id) }
+                    ping = ping,
+                    onOpen = { onOpen(server.id) },
+                    onPingRefresh = { CarrierPing.probeNow(pingScope) }
                 )
             }
         }

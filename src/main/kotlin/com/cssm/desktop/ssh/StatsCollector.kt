@@ -27,6 +27,7 @@ data class MonitorStats(
     val load5: Double,
     val load15: Double,
     val uptimeText: String,
+    val uptimeSec: Long = 0L,
     val sampledAt: Long = System.currentTimeMillis()
 )
 
@@ -194,6 +195,7 @@ class StatsCollector {
                 ioWriteTotalBytes = ioW,
                 load1 = load1, load5 = load5, load15 = load15,
                 uptimeText = uptimeText,
+                uptimeSec = upSec,
                 sampledAt = now
             )
         } catch (_: Exception) {

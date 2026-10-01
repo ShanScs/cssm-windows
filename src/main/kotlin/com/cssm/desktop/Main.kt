@@ -45,6 +45,7 @@ import com.cssm.desktop.ui.containers.ContainersScreen
 import com.cssm.desktop.ui.files.FilesScreen
 import com.cssm.desktop.ui.metrics.MetricsRepository
 import com.cssm.desktop.ui.metrics.MetricsScreen
+import com.cssm.desktop.ui.metrics.CarrierPing
 import com.cssm.desktop.ui.metrics.collectLoop
 import com.cssm.desktop.ui.more.MoreScreen
 import com.cssm.desktop.ui.servers.EditScreen
@@ -131,6 +132,7 @@ fun main() = application {
     // 告警引擎：App 存活期间每 30 秒检查一次
     LaunchedEffect(Unit) {
         NotifyEngine.start(appScope, alertStore, store, metricsRepo)
+        CarrierPing.start(appScope)
     }
 
     fun nav(target: Route, ret: Route? = null) {
@@ -184,7 +186,7 @@ fun main() = application {
                             Route.Metrics -> MetricsScreen(
                                 store = store,
                                 repo = metricsRepo,
-                                onOpen = { id -> nav(Route.Session(id), r) }
+                                onOpen = { id -> nav(Route.Edit(id), r) }
                             )
                             Route.Terminal -> TerminalScreen(
                                 store = store,

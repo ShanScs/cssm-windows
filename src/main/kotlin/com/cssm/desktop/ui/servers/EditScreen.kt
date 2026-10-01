@@ -74,6 +74,10 @@ fun EditScreen(
     var keyPassphrase by remember { mutableStateOf("") }
     var region by remember { mutableStateOf<Region?>(null) }
     var regionMenu by remember { mutableStateOf(false) }
+    var price by remember { mutableStateOf("") }
+    var renewPrice by remember { mutableStateOf("") }
+    var expireDate by remember { mutableStateOf("") } // yyyy-MM-dd
+    var quotaGb by remember { mutableStateOf("") }    // 流量配额（GB）
     var keyMenu by remember { mutableStateOf(false) }
     val savedKeys by keyStore.keys.collectAsState()
     var detecting by remember { mutableStateOf(false) }
@@ -88,6 +92,14 @@ fun EditScreen(
                 password = s.password; privateKey = s.privateKey
                 keyPassphrase = s.keyPassphrase
                 region = findRegion(s.region)
+                price = s.price
+                renewPrice = s.renewPrice
+                expireDate = if (s.expireAt > 0)
+                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                        .format(java.util.Date(s.expireAt)) else ""
+                quotaGb = if (s.trafficQuotaGb > 0)
+                    (if (s.trafficQuotaGb % 1.0 == 0.0) s.trafficQuotaGb.toLong().toString()
+                    else s.trafficQuotaGb.toString()) else ""
             }
             loaded = true
         }
@@ -217,6 +229,22 @@ fun EditScreen(
                 ) { Text(if (detecting) "识别中…" else "自动识别") }
             }
 
+            // 计费信息（指标卡片 NeoServer 风格展示用）
+            Text("计费信息（可选）", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Field("价格", price, { price = it },
+                    modifier = Modifier.weight(1f), placeholder = "$10.99 / 年")
+                Field("续费价格", renewPrice, { renewPrice = it },
+                    modifier = Modifier.weight(1f), placeholder = "$8.88")
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Field("到期日期", expireDate, { expireDate = it.filter { c -> c.isDigit() || c == '-' }.take(10) },
+                    modifier = Modifier.weight(1f), placeholder = "2027-03-15")
+                Field("流量配额（GB）", quotaGb, { quotaGb = it.filter { c -> c.isDigit() || c == '.' }.take(10) },
+                    modifier = Modifier.weight(1f), placeholder = "3072",
+                    keyboardType = KeyboardType.Number)
+            }
+
             if (error.isNotBlank()) {
                 Text(error, color = MaterialTheme.colorScheme.error)
             }
@@ -226,12 +254,21 @@ fun EditScreen(
                 onClick = {
                     val h = host.trim()
                     val p = port.toIntOrNull() ?: 0
+                    val expAt = expireDate.trim().let { d ->
+                        if (d.isBlank()) 0L else try {
+                            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                                .apply { isLenient = false }.parse(d)?.time ?: -1L
+                        } catch (_: Exception) { -1L }
+                    }
+                    val quota = quotaGb.trim().toDoubleOrNull() ?: 0.0
                     error = when {
                         h.isEmpty() -> "请填写主机"
                         p !in 1..65535 -> "端口不合法"
                         username.isBlank() -> "请填写用户名"
                         authType == Server.AUTH_PASSWORD && password.isEmpty() -> "请填写密码"
                         authType == Server.AUTH_KEY && privateKey.isBlank() -> "请填写私钥"
+                        expAt < 0 -> "到期日期格式应为 yyyy-MM-dd"
+                        quotaGb.trim().isNotEmpty() && quota <= 0 -> "流量配额须为正数"
                         else -> ""
                     }
                     if (error.isNotEmpty() || saving) return@Button
@@ -248,7 +285,9 @@ fun EditScreen(
                                 host = h, port = p, username = username.trim(),
                                 authType = authType, password = password,
                                 privateKey = privateKey, keyPassphrase = keyPassphrase,
-                                region = r?.name ?: "", regionFlag = r?.flag ?: ""
+                                region = r?.name ?: "", regionFlag = r?.flag ?: "",
+                                price = price.trim(), renewPrice = renewPrice.trim(),
+                                expireAt = expAt, trafficQuotaGb = quota
                             )
                             // 保留编辑前的系统/排序/会话信息
                             val old = if (id != 0L) store.getById(id) else null

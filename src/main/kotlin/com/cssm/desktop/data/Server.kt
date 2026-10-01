@@ -28,7 +28,15 @@ data class Server(
     /** 列表排序位：越小越靠前；用户在终端页排序后写入 */
     val sortOrder: Long = 0,
     /** 数据更新时间：预留给账号同步做合并 */
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** 价格展示文本，如 "$10.99 / 年"（NeoServer 风格指标卡片用） */
+    val price: String = "",
+    /** 续费价格展示文本，如 "$8.88" */
+    val renewPrice: String = "",
+    /** 到期时间戳（毫秒），0 = 未设置；卡片显示"剩余 X 天" */
+    val expireAt: Long = 0L,
+    /** 流量配额（GB），0 = 未设置；卡片"流量"百分比 = 上行总量 / 配额 */
+    val trafficQuotaGb: Double = 0.0
 ) {
     companion object {
         const val AUTH_PASSWORD = "password"
