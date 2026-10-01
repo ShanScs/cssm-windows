@@ -19,6 +19,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -143,6 +144,11 @@ fun main() = application {
             title = "Cssm",
             state = rememberWindowState(width = 1100.dp, height = 720.dp)
         ) {
+            // Surface 提供默认内容色（LocalContentColor），深色下普通 Text 自动用浅色
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
             val r = route
             if (r is Route.Session || r is Route.Edit || r is Route.Sftp ||
                 r is Route.Docker || r is Route.ServerManage || r is Route.Scripts ||
@@ -209,6 +215,7 @@ fun main() = application {
                     }
                 }
             }
+            }
         }
     }
 }
@@ -227,7 +234,12 @@ private fun FullContent(
     navSession: (Long, Route) -> Unit
 ) {
     val servers by store.servers.collectAsState()
-    when (route) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        when (route) {
         is Route.Session -> {
             val server = servers.firstOrNull { it.id == route.id }
             if (server != null) {
@@ -286,6 +298,7 @@ private fun FullContent(
             onDone = onBack, onCancel = onBack
         )
         else -> Unit
+    }
     }
 }
 
