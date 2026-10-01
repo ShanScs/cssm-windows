@@ -8,34 +8,69 @@ on:
 jobs:
   build-msi:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        
+
     - name: Check files
       run: |
         dir
         dir libs-repo\org\jetbrains\jediterm\jediterm-core\3.64\
-        
+
     - name: Download Gradle
       run: |
         Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-8.7-bin.zip" -OutFile "$env:TEMP\gradle.zip"
         Expand-Archive -Path "$env:TEMP\gradle.zip" -DestinationPath "$env:TEMP"
         echo "$env:TEMP\gradle-8.7\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        
+
     - name: Build MSI
       run: gradle packageMsi --no-daemon --stacktrace
-      
+
     - name: Upload MSI
       uses: actions/upload-artifact@v4
       with:
         name: cssm-windows-installer
         path: build/compose/binaries/main/msi/*.msi
         retention-days: 30
+
+  # 永久发布：commit message 带 [release] 时，把本次构建的 MSI 发成 GitHub Release 附件
+  # （Actions artifact 30 天过期会被彻底删除，Release 附件永久保留）。
+  # 版本号自动从 build.gradle.kts 的 packageVersion 读取，tag 形如 v1.0.1。
+  release:
+    needs: build-msi
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release]')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Read packageVersion
+      id: ver
+      shell: pwsh
+      run: |
+        $line = Select-String -Path build.gradle.kts -Pattern 'packageVersion = "([^"]+)"' | Select-Object -First 1
+        $v = $line.Matches[0].Groups[1].Value
+        "version=$v" >> $env:GITHUB_OUTPUT
+
+    - name: Download MSI artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: cssm-windows-installer
+        path: msi
+
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
+      run: |
+        $tag = "v${{ steps.ver.outputs.version }}"
+        gh release create $tag msi/*.msi --title "Cssm Windows v${{ steps.ver.outputs.version }}" --generate-notes
