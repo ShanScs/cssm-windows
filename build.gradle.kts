@@ -37,7 +37,8 @@ compose.desktop {
             packageName = "Cssm"
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
-            packageVersion = "1.2.0"
+            // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
+            packageVersion = "1.2.1"
             windows {
                 menu = true
                 // 开始菜单里建 "Cssm" 文件夹：应用和卸载入口分开放，
