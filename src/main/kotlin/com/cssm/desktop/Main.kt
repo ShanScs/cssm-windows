@@ -21,10 +21,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +42,9 @@ import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.ipadBlue
 import com.cssm.desktop.ui.containers.ContainersScreen
 import com.cssm.desktop.ui.files.FilesScreen
+import com.cssm.desktop.ui.metrics.MetricsRepository
 import com.cssm.desktop.ui.metrics.MetricsScreen
+import com.cssm.desktop.ui.metrics.collectLoop
 import com.cssm.desktop.ui.more.MoreScreen
 import com.cssm.desktop.ui.servers.EditScreen
 import com.cssm.desktop.ui.docker.DockerScreen
@@ -51,6 +55,9 @@ import com.cssm.desktop.ui.settings.SettingsScreen
 import com.cssm.desktop.ui.terminal.TerminalScreen
 import com.cssm.desktop.ui.theme.CssmTheme
 import com.cssm.desktop.ui.theme.ThemePrefs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 sealed interface Route {
     // 一级 tab（顶部居中分段导航，对标 iPad 版）
@@ -75,6 +82,25 @@ fun main() = application {
     // 进入全窗口页之前的返回目标
     var returnRoute by remember { mutableStateOf<Route>(Route.Metrics) }
     val themeMode by ThemePrefs.mode.collectAsState()
+
+    // 全局指标采集：App 存活期间一直跑，切 tab / 进二级页不中断，
+    // 彻底关闭 App 时随作用域结束
+    val metricsRepo = remember { MetricsRepository() }
+    val appScope = rememberCoroutineScope()
+    val servers by store.servers.collectAsState()
+    val collectJobs = remember { mutableMapOf<Long, Job>() }
+    LaunchedEffect(servers) {
+        val ids = servers.map { it.id }.toSet()
+        collectJobs.keys.filter { it !in ids }.forEach { collectJobs.remove(it)?.cancel() }
+        for (server in servers) {
+            if (!collectJobs.containsKey(server.id)) {
+                collectJobs[server.id] = appScope.launch(Dispatchers.IO) {
+                    collectLoop(server, metricsRepo)
+                }
+            }
+        }
+        metricsRepo.states.value.keys.filter { it !in ids }.forEach { metricsRepo.remove(it) }
+    }
 
     fun nav(target: Route, ret: Route? = null) {
         if (ret != null) returnRoute = ret
@@ -113,6 +139,7 @@ fun main() = application {
                         when (r) {
                             Route.Metrics -> MetricsScreen(
                                 store = store,
+                                repo = metricsRepo,
                                 onOpen = { id -> nav(Route.Session(id), r) }
                             )
                             Route.Terminal -> TerminalScreen(

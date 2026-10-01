@@ -85,6 +85,14 @@ fun ServerMetricCard(
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (hasData) {
+                        Text(
+                            text = stats!!.uptimeText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     Text(
                         text = "›",
                         fontSize = 22.sp,

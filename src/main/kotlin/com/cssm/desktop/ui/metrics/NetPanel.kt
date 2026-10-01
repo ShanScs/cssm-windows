@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,14 +47,14 @@ fun NetDottedPanel(
             .fillMaxWidth()
             .fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        Text(text = label, fontSize = 12.sp, color = variant)
+        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = variant)
         Spacer(Modifier.height(6.dp))
         if (stacked) {
-            Text(text = down, fontSize = 12.sp, color = Color(0xFF34C77B), maxLines = 1)
+            Text(text = down, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C77B), maxLines = 1)
             Spacer(Modifier.height(2.dp))
-            Text(text = up, fontSize = 12.sp, color = Color(0xFF0EA5E9), maxLines = 1)
+            Text(text = up, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0EA5E9), maxLines = 1)
             if (showSpark) {
                 Spacer(Modifier.height(6.dp))
                 Sparkline(
@@ -70,9 +71,9 @@ fun NetDottedPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = down, fontSize = 12.sp, color = Color(0xFF34C77B), maxLines = 1)
+                    Text(text = down, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C77B), maxLines = 1)
                     Spacer(Modifier.height(2.dp))
-                    Text(text = up, fontSize = 12.sp, color = Color(0xFF0EA5E9), maxLines = 1)
+                    Text(text = up, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0EA5E9), maxLines = 1)
                 }
                 if (showSpark) {
                     Spacer(Modifier.width(8.dp))

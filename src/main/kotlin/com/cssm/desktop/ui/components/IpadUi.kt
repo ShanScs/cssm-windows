@@ -137,6 +137,7 @@ fun IpadRing(
         Text(
             text = label,
             fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(4.dp))
@@ -167,7 +168,7 @@ fun IpadRing(
             Text(
                 text = valueText ?: "${pct.toInt()}%",
                 fontSize = (size.value * 0.24f).sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = c
             )
         }
@@ -176,6 +177,7 @@ fun IpadRing(
             Text(
                 text = sub,
                 fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
