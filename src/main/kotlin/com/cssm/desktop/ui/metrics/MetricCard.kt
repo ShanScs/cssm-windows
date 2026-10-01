@@ -130,8 +130,9 @@ fun ServerMetricCard(
                     IpadSubPanel(modifier = Modifier.weight(1f)) {
                         NetDottedPanel(
                             label = "Network",
-                            down = "↓${formatBytes(s.rxBytesPerSec)}",
-                            up = "↑${formatBytes(s.txBytesPerSec)}",
+                            down = "↓${formatRate(s.rxBytesPerSec)}",
+                            up = "↑${formatRate(s.txBytesPerSec)}",
+                            footer = "总 ↓${formatBytes(s.rxTotalBytes)} ↑${formatBytes(s.txTotalBytes)}",
                             downValues = mm.rxHistory,
                             upValues = mm.txHistory,
                             sparkWidth = 56.dp,
@@ -173,8 +174,8 @@ fun ServerMetricCard(
                     val mm = m!!
                     NetDottedPanel(
                         label = "I/O",
-                        down = "↓${formatBytes(s.ioReadBytesPerSec)}",
-                        up = "↑${formatBytes(s.ioWriteBytesPerSec)}",
+                        down = "↓${formatRate(s.ioReadBytesPerSec)}",
+                        up = "↑${formatRate(s.ioWriteBytesPerSec)}",
                         downValues = mm.ioReadHistory,
                         upValues = mm.ioWriteHistory,
                         sparkWidth = 120.dp,
