@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 fun FilesScreen(
     store: ServerStore,
     onOpenSftp: (Long) -> Unit,
+    onOpenLocal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val servers by store.servers.collectAsState()
@@ -94,7 +95,7 @@ fun FilesScreen(
                         subtitle = "本地文件",
                         icon = Icons.Filled.Folder,
                         iconTint = Color(0xFFF5A623),
-                        onClick = { scope.launch { snackbar.showSnackbar("本地文件即将推出") } }
+                        onClick = onOpenLocal
                     )
                 }
                 items(filtered, key = { it.id }) { server ->

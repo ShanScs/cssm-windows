@@ -51,7 +51,19 @@ import com.cssm.desktop.ui.docker.DockerScreen
 import com.cssm.desktop.ui.sftp.SftpScreen
 import com.cssm.desktop.ui.servers.ServersScreen
 import com.cssm.desktop.ui.session.SessionScreen
-import com.cssm.desktop.ui.settings.SettingsScreen
+import com.cssm.desktop.data.AlertStore
+import com.cssm.desktop.data.ForwardStore
+import com.cssm.desktop.data.KeyStore
+import com.cssm.desktop.data.ScriptStore
+import com.cssm.desktop.ssh.ForwardManager
+import com.cssm.desktop.ui.aichat.AiChatScreen
+import com.cssm.desktop.ui.files.LocalFilesScreen
+import com.cssm.desktop.ui.forward.ForwardScreen
+import com.cssm.desktop.ui.keys.KeyScreen
+import com.cssm.desktop.ui.notify.NotifyEngine
+import com.cssm.desktop.ui.notify.NotifyScreen
+import com.cssm.desktop.ui.scripts.ScriptScreen
+import com.cssm.desktop.ui.search.SearchScreen
 import com.cssm.desktop.ui.terminal.TerminalScreen
 import com.cssm.desktop.ui.theme.CssmTheme
 import com.cssm.desktop.ui.theme.ThemePrefs
@@ -66,9 +78,15 @@ sealed interface Route {
     data object Files : Route
     data object Containers : Route
     data object More : Route
-    // 更多页的二级页
+    // 设置页（原"更多"）的二级页
     data object ServerManage : Route
-    data object Settings : Route
+    data object Scripts : Route
+    data object Keys : Route
+    data object AiChat : Route
+    data object Forward : Route
+    data object Notify : Route
+    data object Search : Route
+    data object LocalFiles : Route
     // 全窗口页
     data class Edit(val id: Long) : Route
     data class Session(val id: Long) : Route
@@ -102,6 +120,18 @@ fun main() = application {
         metricsRepo.states.value.keys.filter { it !in ids }.forEach { metricsRepo.remove(it) }
     }
 
+    // 功能数据存储（App 级单例）
+    val scriptStore = remember { ScriptStore() }
+    val keyStore = remember { KeyStore() }
+    val forwardStore = remember { ForwardStore() }
+    val alertStore = remember { AlertStore() }
+    val forwardManager = remember { ForwardManager() }
+
+    // 告警引擎：App 存活期间每 30 秒检查一次
+    LaunchedEffect(Unit) {
+        NotifyEngine.start(appScope, alertStore, store, metricsRepo)
+    }
+
     fun nav(target: Route, ret: Route? = null) {
         if (ret != null) returnRoute = ret
         route = target
@@ -115,13 +145,21 @@ fun main() = application {
         ) {
             val r = route
             if (r is Route.Session || r is Route.Edit || r is Route.Sftp ||
-                r is Route.Docker || r is Route.ServerManage || r is Route.Settings
+                r is Route.Docker || r is Route.ServerManage || r is Route.Scripts ||
+                r is Route.Keys || r is Route.AiChat || r is Route.Forward ||
+                r is Route.Notify || r is Route.Search || r is Route.LocalFiles
             ) {
                 FullContent(
                     route = r,
                     store = store,
+                    scriptStore = scriptStore,
+                    keyStore = keyStore,
+                    forwardStore = forwardStore,
+                    alertStore = alertStore,
+                    forwardManager = forwardManager,
                     onBack = { route = returnRoute },
-                    navEdit = { id, ret -> nav(Route.Edit(id), ret) }
+                    navEdit = { id, ret -> nav(Route.Edit(id), ret) },
+                    navSession = { id, ret -> nav(Route.Session(id), ret) }
                 )
             } else {
                 Column(
@@ -132,7 +170,7 @@ fun main() = application {
                         selected = r,
                         onSelect = { route = it },
                         onAddServer = { nav(Route.Edit(0), r) },
-                        onOpenSettings = { nav(Route.Settings, r) }
+                        onOpenSettings = { route = Route.More }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Box(Modifier.weight(1f)) {
@@ -148,7 +186,8 @@ fun main() = application {
                             )
                             Route.Files -> FilesScreen(
                                 store = store,
-                                onOpenSftp = { id -> nav(Route.Sftp(id), r) }
+                                onOpenSftp = { id -> nav(Route.Sftp(id), r) },
+                                onOpenLocal = { nav(Route.LocalFiles, r) }
                             )
                             Route.Containers -> ContainersScreen(
                                 store = store,
@@ -158,7 +197,12 @@ fun main() = application {
                             )
                             Route.More -> MoreScreen(
                                 onServers = { nav(Route.ServerManage, r) },
-                                onSettings = { nav(Route.Settings, r) }
+                                onScripts = { nav(Route.Scripts, r) },
+                                onKeys = { nav(Route.Keys, r) },
+                                onAiChat = { nav(Route.AiChat, r) },
+                                onForward = { nav(Route.Forward, r) },
+                                onNotify = { nav(Route.Notify, r) },
+                                onSearch = { nav(Route.Search, r) }
                             )
                             else -> Unit
                         }
@@ -173,8 +217,14 @@ fun main() = application {
 private fun FullContent(
     route: Route,
     store: ServerStore,
+    scriptStore: ScriptStore,
+    keyStore: KeyStore,
+    forwardStore: ForwardStore,
+    alertStore: AlertStore,
+    forwardManager: ForwardManager,
     onBack: () -> Unit,
-    navEdit: (Long, Route) -> Unit
+    navEdit: (Long, Route) -> Unit,
+    navSession: (Long, Route) -> Unit
 ) {
     val servers by store.servers.collectAsState()
     when (route) {
@@ -211,9 +261,28 @@ private fun FullContent(
             onDocker = { },
             onBack = onBack
         )
-        is Route.Settings -> SettingsScreen(onBack = onBack)
+        is Route.Scripts -> ScriptScreen(
+            store = scriptStore, servers = servers, onBack = onBack
+        )
+        is Route.Keys -> KeyScreen(
+            store = keyStore, onBack = onBack
+        )
+        is Route.AiChat -> AiChatScreen(onBack = onBack)
+        is Route.Forward -> ForwardScreen(
+            store = forwardStore, manager = forwardManager,
+            servers = servers, onBack = onBack
+        )
+        is Route.Notify -> NotifyScreen(
+            store = alertStore, servers = servers, onBack = onBack
+        )
+        is Route.Search -> SearchScreen(
+            servers = servers,
+            onOpenSession = { id -> navSession(id, route) },
+            onBack = onBack
+        )
+        is Route.LocalFiles -> LocalFilesScreen(onBack = onBack)
         is Route.Edit -> EditScreen(
-            id = route.id, store = store,
+            id = route.id, store = store, keyStore = keyStore,
             onDone = onBack, onCancel = onBack
         )
         else -> Unit
@@ -221,7 +290,7 @@ private fun FullContent(
 }
 
 /**
- * 顶部导航栏：分段 tab 居中（指标 / 终端 / 文件 / 容器 / 更多），
+ * 顶部导航栏：分段 tab 居中（指标 / 终端 / 文件 / 容器 / 设置），
  * 对标 iPad 版顶部；右侧按页面放操作按钮。
  */
 @Composable
@@ -236,7 +305,7 @@ private fun TopNavBar(
         "终端" to Route.Terminal,
         "文件" to Route.Files,
         "容器" to Route.Containers,
-        "更多" to Route.More
+        "设置" to Route.More
     )
     val blue = ipadBlue()
     Row(

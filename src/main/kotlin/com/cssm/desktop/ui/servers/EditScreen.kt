@@ -1,7 +1,9 @@
 package com.cssm.desktop.ui.servers
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +27,7 @@ import androidx.compose.material3.TextButton
 import com.cssm.desktop.ui.components.FlagImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +40,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.cssm.desktop.data.KeyStore
 import com.cssm.desktop.data.REGIONS
 import com.cssm.desktop.data.Region
 import com.cssm.desktop.data.Server
@@ -53,6 +58,7 @@ import kotlinx.coroutines.launch
 fun EditScreen(
     id: Long,
     store: ServerStore,
+    keyStore: KeyStore,
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -68,6 +74,8 @@ fun EditScreen(
     var keyPassphrase by remember { mutableStateOf("") }
     var region by remember { mutableStateOf<Region?>(null) }
     var regionMenu by remember { mutableStateOf(false) }
+    var keyMenu by remember { mutableStateOf(false) }
+    val savedKeys by keyStore.keys.collectAsState()
     var detecting by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -137,7 +145,31 @@ fun EditScreen(
                 Field("密码", password, { password = it }, secret = true)
             } else {
                 Field("私钥（PEM）", privateKey, { privateKey = it },
-                    singleLine = false, minLines = 4, placeholder = "-----BEGIN ...")
+                    singleLine = false, minLines = 4, placeholder = "-----BEGIN ...",
+                    labelTrailing = {
+                        Box {
+                            OutlinedButton(
+                                onClick = { keyMenu = true },
+                                enabled = savedKeys.isNotEmpty(),
+                                modifier = Modifier.height(36.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                            ) {
+                                Text("从密钥库选择", fontSize = 12.sp)
+                            }
+                            DropdownMenu(expanded = keyMenu, onDismissRequest = { keyMenu = false }) {
+                                savedKeys.forEach { k ->
+                                    DropdownMenuItem(
+                                        text = { Text(k.name.ifBlank { "(未命名)" }) },
+                                        onClick = {
+                                            privateKey = k.pem
+                                            if (k.passphrase.isNotBlank()) keyPassphrase = k.passphrase
+                                            keyMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    })
                 Field("私钥口令（可选）", keyPassphrase, { keyPassphrase = it }, secret = true)
             }
 
@@ -266,10 +298,17 @@ private fun Field(
     secret: Boolean = false,
     singleLine: Boolean = true,
     minLines: Int = 1,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    labelTrailing: @Composable (() -> Unit)? = null
 ) {
     Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+            if (labelTrailing != null) {
+                Spacer(Modifier.weight(1f))
+                labelTrailing()
+            }
+        }
         Spacer(Modifier.height(4.dp))
         OutlinedTextField(
             value = value,
