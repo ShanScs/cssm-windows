@@ -35,8 +35,8 @@ fun NetDottedPanel(
     sparkWidth: Dp = 110.dp,
     sparkHeight: Dp = 34.dp,
     stacked: Boolean = false,
-    /** 总量行，如总流量；为空不显示 */
-    footer: String = ""
+    /** 是否绘制历史曲线；总量卡不需要 */
+    showSpark: Boolean = true
 ) {
     val variant = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
@@ -49,23 +49,16 @@ fun NetDottedPanel(
             Text(text = down, fontSize = 12.sp, color = Color(0xFF34C77B), maxLines = 1)
             Spacer(Modifier.height(2.dp))
             Text(text = up, fontSize = 12.sp, color = Color(0xFF0EA5E9), maxLines = 1)
-            if (footer.isNotBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = footer,
-                    fontSize = 10.sp,
-                    color = variant.copy(alpha = 0.85f),
-                    maxLines = 1
+            if (showSpark) {
+                Spacer(Modifier.height(6.dp))
+                Sparkline(
+                    down = downValues,
+                    up = upValues,
+                    width = sparkWidth,
+                    height = sparkHeight,
+                    dotted = true
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            Sparkline(
-                down = downValues,
-                up = upValues,
-                width = sparkWidth,
-                height = sparkHeight,
-                dotted = true
-            )
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -75,24 +68,17 @@ fun NetDottedPanel(
                     Text(text = down, fontSize = 12.sp, color = Color(0xFF34C77B), maxLines = 1)
                     Spacer(Modifier.height(2.dp))
                     Text(text = up, fontSize = 12.sp, color = Color(0xFF0EA5E9), maxLines = 1)
-                    if (footer.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = footer,
-                            fontSize = 10.sp,
-                            color = variant.copy(alpha = 0.85f),
-                            maxLines = 1
-                        )
-                    }
                 }
-                Spacer(Modifier.width(8.dp))
-                Sparkline(
-                    down = downValues,
-                    up = upValues,
-                    width = sparkWidth,
-                    height = sparkHeight,
-                    dotted = true
-                )
+                if (showSpark) {
+                    Spacer(Modifier.width(8.dp))
+                    Sparkline(
+                        down = downValues,
+                        up = upValues,
+                        width = sparkWidth,
+                        height = sparkHeight,
+                        dotted = true
+                    )
+                }
             }
         }
     }

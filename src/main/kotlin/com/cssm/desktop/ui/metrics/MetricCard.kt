@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,7 +34,7 @@ import kotlin.math.roundToInt
 /**
  * 单台服务器的指标卡片（iPad 风格）：
  * 标题行 = 系统图标 + 地区国旗名称 + 状态点/OS / 右侧 Uptime + 箭头；
- * 主体 = CPU / Memory / Disk / Network 四个子面板 + 整宽 I/O 子面板。
+ * 主体 = 上排 CPU / Memory / Disk，下排实时网速 / 总用量 / I/O 等高三卡。
  */
 @Composable
 fun ServerMetricCard(
@@ -93,14 +95,13 @@ fun ServerMetricCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // 四个子面板：CPU / Memory / Disk / Network
+            // 上排：CPU / Memory / Disk
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (hasData) {
                     val s = stats!!
-                    val mm = m!!
                     IpadSubPanel(modifier = Modifier.weight(1f)) {
                         IpadRing(
                             label = "CPU",
@@ -127,19 +128,6 @@ fun ServerMetricCard(
                             size = 44.dp
                         )
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f)) {
-                        NetDottedPanel(
-                            label = "Network",
-                            down = "↓${formatRate(s.rxBytesPerSec)}",
-                            up = "↑${formatRate(s.txBytesPerSec)}",
-                            footer = "总 ↓${formatBytes(s.rxTotalBytes)} ↑${formatBytes(s.txTotalBytes)}",
-                            downValues = mm.rxHistory,
-                            upValues = mm.txHistory,
-                            sparkWidth = 56.dp,
-                            sparkHeight = 20.dp,
-                            stacked = true
-                        )
-                    }
                 } else {
                     IpadSubPanel(modifier = Modifier.weight(1f)) {
                         IpadRing(label = "CPU", pct = 0.0, sub = "", size = 44.dp, valueText = "—")
@@ -150,47 +138,88 @@ fun ServerMetricCard(
                     IpadSubPanel(modifier = Modifier.weight(1f)) {
                         IpadRing(label = "Disk", pct = 0.0, sub = "", size = 44.dp, valueText = "—")
                     }
-                    IpadSubPanel(modifier = Modifier.weight(1f)) {
-                        NetDottedPanel(
-                            label = "Network",
-                            down = "↓—",
-                            up = "↑—",
-                            downValues = emptyList(),
-                            upValues = emptyList(),
-                            sparkWidth = 56.dp,
-                            sparkHeight = 20.dp,
-                            stacked = true
-                        )
-                    }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
 
-            // I/O 整宽子面板
-            IpadSubPanel(modifier = Modifier.fillMaxWidth()) {
+            // 下排：实时网速 / 总用量 / I/O，等高三卡
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 if (hasData) {
                     val s = stats!!
                     val mm = m!!
-                    NetDottedPanel(
-                        label = "I/O",
-                        down = "↓${formatRate(s.ioReadBytesPerSec)}",
-                        up = "↑${formatRate(s.ioWriteBytesPerSec)}",
-                        downValues = mm.ioReadHistory,
-                        upValues = mm.ioWriteHistory,
-                        sparkWidth = 120.dp,
-                        sparkHeight = 26.dp
-                    )
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "实时网速",
+                            down = "↓${formatRate(s.rxBytesPerSec)}",
+                            up = "↑${formatRate(s.txBytesPerSec)}",
+                            downValues = mm.rxHistory,
+                            upValues = mm.txHistory,
+                            sparkWidth = 56.dp,
+                            sparkHeight = 20.dp,
+                            stacked = true
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "总用量",
+                            down = "↓${formatBytes(s.rxTotalBytes)}",
+                            up = "↑${formatBytes(s.txTotalBytes)}",
+                            downValues = emptyList(),
+                            upValues = emptyList(),
+                            showSpark = false,
+                            stacked = true
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "I/O",
+                            down = "↓${formatRate(s.ioReadBytesPerSec)}",
+                            up = "↑${formatRate(s.ioWriteBytesPerSec)}",
+                            downValues = mm.ioReadHistory,
+                            upValues = mm.ioWriteHistory,
+                            sparkWidth = 56.dp,
+                            sparkHeight = 20.dp,
+                            stacked = true
+                        )
+                    }
                 } else {
-                    NetDottedPanel(
-                        label = "I/O",
-                        down = "↓—",
-                        up = "↑—",
-                        downValues = emptyList(),
-                        upValues = emptyList(),
-                        sparkWidth = 120.dp,
-                        sparkHeight = 26.dp
-                    )
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "实时网速",
+                            down = "↓—",
+                            up = "↑—",
+                            downValues = emptyList(),
+                            upValues = emptyList(),
+                            stacked = true
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "总用量",
+                            down = "↓—",
+                            up = "↑—",
+                            downValues = emptyList(),
+                            upValues = emptyList(),
+                            showSpark = false,
+                            stacked = true
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        NetDottedPanel(
+                            label = "I/O",
+                            down = "↓—",
+                            up = "↑—",
+                            downValues = emptyList(),
+                            upValues = emptyList(),
+                            stacked = true
+                        )
+                    }
                 }
             }
         }
