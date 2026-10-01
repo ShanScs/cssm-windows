@@ -63,7 +63,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             Spacer(Modifier.height(8.dp))
             Text("关于", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Cssm 桌面版 1.1.0\n服务器管理 · SSH 终端",
+                "Cssm 桌面版 1.1.1\n服务器管理 · SSH 终端",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

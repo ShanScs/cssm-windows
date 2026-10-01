@@ -9,13 +9,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
  * 迷你历史曲线（sparkline）：网络 / 磁盘 IO 用。
- * 双线：下行（蓝色）+ 上行（绿色），iPad 版同款信息密度。
+ * 双线：下行（蓝色）+ 上行（绿色）；dotted=true 时画 iPad 风格的点状虚线，
+ * 无数据时画灰色虚线基线。
  */
 @Composable
 fun Sparkline(
@@ -25,7 +28,9 @@ fun Sparkline(
     width: Dp = 72.dp,
     height: Dp = 28.dp,
     downColor: Color = Color(0xFF5B8DEF),
-    upColor: Color = Color(0xFF34C77B)
+    upColor: Color = Color(0xFF34C77B),
+    dotted: Boolean = false,
+    emptyColor: Color = Color(0xFFC9CEDA)
 ) {
     val bg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     Canvas(modifier = modifier.size(width, height)) {
@@ -49,9 +54,34 @@ fun Sparkline(
             return path
         }
 
-        val stroke = 1.5.dp.toPx()
-        drawPath(pathFor(down), color = downColor, style = Stroke(stroke))
-        drawPath(pathFor(up), color = upColor, style = Stroke(stroke))
+        if (dotted) {
+            val dash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 5.dp.toPx()), 0f)
+            fun drawSeries(values: List<Long>, color: Color) {
+                if (values.isEmpty()) {
+                    val y = h - 3.dp.toPx()
+                    drawLine(
+                        color = emptyColor,
+                        start = Offset(4.dp.toPx(), y),
+                        end = Offset(w - 4.dp.toPx(), y),
+                        strokeWidth = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = dash
+                    )
+                } else {
+                    drawPath(
+                        pathFor(values),
+                        color = color,
+                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, pathEffect = dash)
+                    )
+                }
+            }
+            drawSeries(down, downColor)
+            drawSeries(up, upColor)
+        } else {
+            val stroke = 1.5.dp.toPx()
+            drawPath(pathFor(down), color = downColor, style = Stroke(stroke))
+            drawPath(pathFor(up), color = upColor, style = Stroke(stroke))
+        }
     }
 }
 

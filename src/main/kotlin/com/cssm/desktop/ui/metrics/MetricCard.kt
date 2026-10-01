@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,6 +23,7 @@ import com.cssm.desktop.data.Server
 import com.cssm.desktop.ssh.MonitorStats
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadRing
+import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.OsBadge
 import com.cssm.desktop.ui.components.ipadName
 import com.cssm.desktop.ui.components.osDisplayName
@@ -31,8 +31,8 @@ import kotlin.math.roundToInt
 
 /**
  * 单台服务器的指标卡片（iPad 风格）：
- * 标题行 = 系统图标 + 地区国旗名称 + OS / 右侧 Uptime + 箭头；
- * 主体 = CPU / Mem / 磁盘小圆环 + 网络 / I/O 四行数值。
+ * 标题行 = 系统图标 + 地区国旗名称 + 状态点/OS / 右侧 Uptime + 箭头；
+ * 主体 = CPU / Memory / Disk / Network 四个子面板 + 整宽 I/O 子面板。
  */
 @Composable
 fun ServerMetricCard(
@@ -43,7 +43,8 @@ fun ServerMetricCard(
 ) {
     val stats: MonitorStats? = metrics?.stats
     val online = metrics?.online != false
-    val hasData = stats != null
+    val m = metrics
+    val hasData = m != null && stats != null
     val dimmed = !online && metrics != null
 
     IpadCard(
@@ -66,21 +67,16 @@ fun ServerMetricCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(2.dp))
-                    if (!online && metrics != null) {
+                    // 第二行：状态点 + 系统名（iPad 风格；未知系统显示占位文案）
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StatusDot(online = online, hasData = hasData)
+                        Spacer(Modifier.width(4.dp))
+                        val os = osDisplayName(server.osId, server.osName).ifBlank { "未知系统" }
                         Text(
-                            text = "● 离线",
+                            text = os,
                             fontSize = 12.sp,
-                            color = Color(0xFFFF453A)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    } else {
-                        val os = osDisplayName(server.osId, server.osName)
-                        if (os.isNotBlank()) {
-                            Text(
-                                text = os,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -99,82 +95,105 @@ fun ServerMetricCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // 指标区
+            // 四个子面板：CPU / Memory / Disk / Network
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (hasData) {
                     val s = stats!!
-                    val usedCores = if (s.cpuCores > 0) {
-                        "${(s.cpuPercent / 100 * s.cpuCores).roundToInt()} C"
-                    } else ""
-                    IpadRing(
-                        label = "CPU",
-                        pct = s.cpuPercent,
-                        sub = usedCores,
-                        size = 48.dp
-                    )
-                    IpadRing(
-                        label = "Mem",
-                        pct = s.memPercent,
-                        sub = formatGb(s.memUsedMb / 1024.0),
-                        size = 48.dp
-                    )
-                    IpadRing(
-                        label = "磁盘",
-                        pct = s.diskPercent,
-                        sub = formatGb(s.diskUsedGb),
-                        size = 48.dp
-                    )
-                    NetStatCol(
-                        label = "网络",
-                        upRate = formatBytes(s.txBytesPerSec),
-                        upTotal = formatBytes(s.txTotalBytes),
-                        downRate = formatBytes(s.rxBytesPerSec),
-                        downTotal = formatBytes(s.rxTotalBytes)
-                    )
-                    NetStatCol(
-                        label = "I/O",
-                        upRate = formatBytes(s.ioWriteBytesPerSec),
-                        upTotal = formatBytes(s.ioWriteTotalBytes),
-                        downRate = formatBytes(s.ioReadBytesPerSec),
-                        downTotal = formatBytes(s.ioReadTotalBytes)
-                    )
+                    val mm = m!!
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(
+                            label = "CPU",
+                            pct = s.cpuPercent,
+                            sub = if (s.cpuCores > 0) {
+                                "${(s.cpuPercent / 100 * s.cpuCores).roundToInt()} C"
+                            } else "",
+                            size = 44.dp
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(
+                            label = "Memory",
+                            pct = s.memPercent,
+                            sub = formatGb(s.memUsedMb / 1024.0),
+                            size = 44.dp
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(
+                            label = "Disk",
+                            pct = s.diskPercent,
+                            sub = formatGb(s.diskUsedGb),
+                            size = 44.dp
+                        )
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        NetDottedPanel(
+                            label = "Network",
+                            down = "↓${formatBytes(s.rxBytesPerSec)}",
+                            up = "↑${formatBytes(s.txBytesPerSec)}",
+                            downValues = mm.rxHistory,
+                            upValues = mm.txHistory,
+                            sparkWidth = 56.dp,
+                            sparkHeight = 20.dp,
+                            stacked = true
+                        )
+                    }
                 } else {
-                    IpadRing(label = "CPU", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
-                    IpadRing(label = "Mem", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
-                    IpadRing(label = "磁盘", pct = 0.0, sub = "", size = 48.dp, valueText = "--")
-                    NetStatCol(label = "网络", upRate = "--", upTotal = "", downRate = "--", downTotal = "")
-                    NetStatCol(label = "I/O", upRate = "--", upTotal = "", downRate = "--", downTotal = "")
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(label = "CPU", pct = 0.0, sub = "", size = 44.dp, valueText = "—")
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(label = "Memory", pct = 0.0, sub = "", size = 44.dp, valueText = "—")
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        IpadRing(label = "Disk", pct = 0.0, sub = "", size = 44.dp, valueText = "—")
+                    }
+                    IpadSubPanel(modifier = Modifier.weight(1f)) {
+                        NetDottedPanel(
+                            label = "Network",
+                            down = "↓—",
+                            up = "↑—",
+                            downValues = emptyList(),
+                            upValues = emptyList(),
+                            sparkWidth = 56.dp,
+                            sparkHeight = 20.dp,
+                            stacked = true
+                        )
+                    }
                 }
             }
-        }
-    }
-}
 
-/** 网络 / I/O 四行数值列：↑速率 / ↑累计 / ↓速率 / ↓累计 */
-@Composable
-private fun NetStatCol(
-    label: String,
-    upRate: String,
-    upTotal: String,
-    downRate: String,
-    downTotal: String
-) {
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val onVariant = MaterialTheme.colorScheme.onSurfaceVariant
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, fontSize = 11.sp, color = onVariant)
-        Spacer(Modifier.height(4.dp))
-        Text(text = "↑$upRate", fontSize = 11.sp, color = onSurface, maxLines = 1)
-        if (upTotal.isNotEmpty()) {
-            Text(text = upTotal, fontSize = 10.sp, color = onVariant, maxLines = 1)
-        }
-        Text(text = "↓$downRate", fontSize = 11.sp, color = onSurface, maxLines = 1)
-        if (downTotal.isNotEmpty()) {
-            Text(text = downTotal, fontSize = 10.sp, color = onVariant, maxLines = 1)
+            Spacer(Modifier.height(8.dp))
+
+            // I/O 整宽子面板
+            IpadSubPanel(modifier = Modifier.fillMaxWidth()) {
+                if (hasData) {
+                    val s = stats!!
+                    val mm = m!!
+                    NetDottedPanel(
+                        label = "I/O",
+                        down = "↓${formatBytes(s.ioReadBytesPerSec)}",
+                        up = "↑${formatBytes(s.ioWriteBytesPerSec)}",
+                        downValues = mm.ioReadHistory,
+                        upValues = mm.ioWriteHistory,
+                        sparkWidth = 120.dp,
+                        sparkHeight = 26.dp
+                    )
+                } else {
+                    NetDottedPanel(
+                        label = "I/O",
+                        down = "↓—",
+                        up = "↑—",
+                        downValues = emptyList(),
+                        upValues = emptyList(),
+                        sparkWidth = 120.dp,
+                        sparkHeight = 26.dp
+                    )
+                }
+            }
         }
     }
 }

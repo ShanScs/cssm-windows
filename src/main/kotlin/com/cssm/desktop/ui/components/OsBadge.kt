@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,12 +37,22 @@ fun OsBadge(
             .background(bg),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            letter,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = (size.value * 0.45f).sp
-        )
+        if (letter == "?") {
+            // 未知系统：用服务器堆叠图标代替问号，看起来不像占位符
+            Icon(
+                imageVector = Icons.Filled.Dns,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(size * 0.52f)
+            )
+        } else {
+            Text(
+                letter,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = (size.value * 0.45f).sp
+            )
+        }
     }
 }
 

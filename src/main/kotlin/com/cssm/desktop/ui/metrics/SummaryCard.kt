@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadRing
+import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.ipadBlue
 
 /**
@@ -60,7 +61,8 @@ fun SummaryCard(
 
     val rxHist = aggregateHistory(states.values.map { it.rxHistory })
     val txHist = aggregateHistory(states.values.map { it.txHistory })
-    val ioHist = aggregateHistory(states.values.map { it.ioReadHistory + it.ioWriteHistory })
+    val ioReadHist = aggregateHistory(states.values.map { it.ioReadHistory })
+    val ioWriteHist = aggregateHistory(states.values.map { it.ioWriteHistory })
 
     val blue = ipadBlue()
 
@@ -117,84 +119,67 @@ fun SummaryCard(
 
             Spacer(Modifier.height(18.dp))
 
-            // 三个大圆环
+            // 三个子面板：CPU / Memory / Disk
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IpadRing(
-                    label = "CPU",
-                    pct = avgCpu,
-                    sub = if (totalCores > 0) "%.1f / %d Cores".format(usedCores, totalCores) else "",
-                    size = 76.dp,
-                    stroke = 8.dp
-                )
-                IpadRing(
-                    label = "Memory",
-                    pct = memPct,
-                    sub = "${formatGb(memUsedMb / 1024.0)} / ${formatGb(memTotalMb / 1024.0)}",
-                    size = 76.dp,
-                    stroke = 8.dp
-                )
-                IpadRing(
-                    label = "Disk",
-                    pct = diskPct,
-                    sub = "${formatGb(diskUsedGb)} / ${formatGb(diskTotalGb)}",
-                    size = 76.dp,
-                    stroke = 8.dp
-                )
+                IpadSubPanel(modifier = Modifier.weight(1f)) {
+                    IpadRing(
+                        label = "CPU",
+                        pct = avgCpu,
+                        sub = if (totalCores > 0) "%.1f / %d Cores".format(usedCores, totalCores) else "",
+                        size = 76.dp,
+                        stroke = 8.dp
+                    )
+                }
+                IpadSubPanel(modifier = Modifier.weight(1f)) {
+                    IpadRing(
+                        label = "Memory",
+                        pct = memPct,
+                        sub = "${formatGb(memUsedMb / 1024.0)} / ${formatGb(memTotalMb / 1024.0)}",
+                        size = 76.dp,
+                        stroke = 8.dp
+                    )
+                }
+                IpadSubPanel(modifier = Modifier.weight(1f)) {
+                    IpadRing(
+                        label = "Disk",
+                        pct = diskPct,
+                        sub = "${formatGb(diskUsedGb)} / ${formatGb(diskTotalGb)}",
+                        size = 76.dp,
+                        stroke = 8.dp
+                    )
+                }
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // 网络 / IO
-            Row(modifier = Modifier.fillMaxWidth()) {
-                NetGroup(
-                    label = "Network",
-                    down = "↓ ${formatRate(totalRx)}",
-                    up = "↑ ${formatRate(totalTx)}",
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Sparkline(down = rxHist, up = txHist, width = 120.dp, height = 38.dp)
+            // 网络 / I/O 子面板
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IpadSubPanel(modifier = Modifier.weight(1f)) {
+                    NetDottedPanel(
+                        label = "Network",
+                        down = "↓ ${formatRate(totalRx)}",
+                        up = "↑ ${formatRate(totalTx)}",
+                        downValues = rxHist,
+                        upValues = txHist
+                    )
                 }
-                Spacer(Modifier.width(24.dp))
-                NetGroup(
-                    label = "I/O",
-                    down = "↓ ${formatRate(totalIoR)}",
-                    up = "↑ ${formatRate(totalIoW)}",
-                    modifier = Modifier.weight(1f)
-                ) {
-                    AreaChart(values = ioHist, width = 120.dp, height = 38.dp)
+                IpadSubPanel(modifier = Modifier.weight(1f)) {
+                    NetDottedPanel(
+                        label = "I/O",
+                        down = "↓ ${formatRate(totalIoR)}",
+                        up = "↑ ${formatRate(totalIoW)}",
+                        downValues = ioReadHist,
+                        upValues = ioWriteHist
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun NetGroup(
-    label: String,
-    down: String,
-    up: String,
-    modifier: Modifier = Modifier,
-    chart: @Composable () -> Unit
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(text = down, fontSize = 13.sp, color = Color(0xFF34C77B))
-            Text(text = up, fontSize = 13.sp, color = Color(0xFF0EA5E9))
-        }
-        Spacer(Modifier.width(12.dp))
-        chart()
     }
 }
 

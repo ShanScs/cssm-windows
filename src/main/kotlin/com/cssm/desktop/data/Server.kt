@@ -39,11 +39,17 @@ data class Server(
     val displayTarget: String
         get() = "$username@$host:$port"
 
-    /** 带地区国旗的展示名，如「🇺🇸 美国 · 洛杉矶」；未设置地区时退化为名称；名称与地区相同时去重 */
+    /** 带地区国旗的展示名，如「🇺🇸 美国 · 洛杉矶」；未设置地区时退化为名称；地区与名称互相包含时去重 */
     val displayName: String
         get() = if (region.isNotBlank()) {
             val flag = regionFlag.ifBlank { "" }
-            val core = if (name.trim() == region.trim()) region else "$region · $name"
+            val r = region.trim()
+            val n = name.trim()
+            val core = when {
+                n.isEmpty() || n == r || r.startsWith(n) -> r
+                n.startsWith(r) -> n
+                else -> "$r · $n"
+            }
             "$flag $core".trim()
         } else {
             name

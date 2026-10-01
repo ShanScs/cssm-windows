@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,7 +55,12 @@ fun Server.ipadName(): String {
     val r = region.trim()
     val n = name.trim().ifBlank { host }
     if (r.isEmpty()) return n
-    return "$r${regionFlag.trim()}$n"
+    val flag = regionFlag.trim()
+    return when {
+        r.startsWith(n) -> "$r$flag"   // 如地区「澳洲AU」已含名称「澳洲」，只显示地区
+        n.startsWith(r) -> "$flag$n"   // 名称已含地区时只显示名称
+        else -> "$r$flag$n"
+    }
 }
 
 /** 大标题，如「指标」 */
@@ -189,6 +195,23 @@ fun IpadCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = { Column(content = content) }
+    )
+}
+
+/** iPad 风格子面板：卡片内的浅灰圆角底，装一组指标（圆环 / 网络 / I/O） */
+@Composable
+fun IpadSubPanel(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(10.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(contentPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        content = content
     )
 }
 
