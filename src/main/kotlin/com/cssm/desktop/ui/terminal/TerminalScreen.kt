@@ -37,6 +37,7 @@ import com.cssm.desktop.ui.components.RegionSegment
 import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.ServerResourceCard
 import com.cssm.desktop.ui.components.cardEntrance
+import com.cssm.desktop.ui.components.CenteredGridContainer
 import com.cssm.desktop.ui.components.ipadBlue
 
 /**
@@ -87,6 +88,7 @@ fun TerminalScreen(
             )
         }
 
+        CenteredGridContainer {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             modifier = Modifier.fillMaxSize(),
@@ -146,6 +148,7 @@ fun TerminalScreen(
                     )
                 }
             }
+        }
         }
     }
 }

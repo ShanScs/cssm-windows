@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
 import com.cssm.desktop.ui.components.cardEntrance
+import com.cssm.desktop.ui.components.CenteredGridContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,6 +101,7 @@ fun MetricsScreen(
             return
         }
 
+        CenteredGridContainer {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             modifier = Modifier.fillMaxSize(),
@@ -118,6 +120,7 @@ fun MetricsScreen(
                     modifier = Modifier.cardEntrance(index)
                 )
             }
+        }
         }
     }
 }

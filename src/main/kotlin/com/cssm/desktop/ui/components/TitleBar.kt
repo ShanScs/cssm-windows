@@ -37,6 +37,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowScope
 import androidx.compose.ui.window.WindowState
 import java.awt.Cursor
+import java.awt.GraphicsEnvironment
 import kotlin.math.roundToInt
 
 private val TitleBarHeight = 44.dp
@@ -68,21 +69,29 @@ fun WindowScope.CustomTitleBar(
                 .fillMaxWidth()
                 .height(TitleBarHeight)
                 .background(bg)
-                .pointerInput(window, maximized) {
-                    detectTapGestures(onDoubleTap = { toggleMaximize() })
-                }
-                .pointerInput(window, maximized) {
-                    if (maximized) return@pointerInput
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        val loc = window.locationOnScreen
-                        window.setLocation(
-                            (loc.x + dragAmount.x).roundToInt(),
-                            (loc.y + dragAmount.y).roundToInt()
-                        )
-                    }
-                }
         ) {
+            // 拖拽层：只覆盖按钮以外的区域，避免误触最小化/最大化/关闭
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = WinButtonWidth * 3)
+                    .pointerInput(window, maximized) {
+                        detectTapGestures(onDoubleTap = { toggleMaximize() })
+                    }
+                    .pointerInput(window, maximized) {
+                        if (maximized) return@pointerInput
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            val loc = window.locationOnScreen
+                            val (nx, ny) = clampPosition(
+                                window,
+                                (loc.x + dragAmount.x).roundToInt(),
+                                (loc.y + dragAmount.y).roundToInt()
+                            )
+                            window.setLocation(nx, ny)
+                        }
+                    }
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -125,6 +134,30 @@ fun WindowScope.CustomTitleBar(
             thickness = 1.dp
         )
     }
+}
+
+/**
+ * 把窗口位置钳制在屏幕可见范围内：至少保留 160px 宽度和标题栏可见，
+ * 窗口永远不会被拖出屏幕"消失"。
+ */
+private fun clampPosition(window: java.awt.Window, x: Int, y: Int): Pair<Int, Int> {
+    val b = window.graphicsConfiguration?.bounds
+        ?: GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+    val w = window.width.coerceAtLeast(1)
+    val nx = x.coerceIn(b.x - w + 160, b.x + b.width - 160)
+    val ny = y.coerceIn(b.y, b.y + b.height - 60)
+    return nx to ny
+}
+
+/** 缩放时同样钳制：窗口主体永远留在屏幕内 */
+private fun clampBounds(window: java.awt.Window, x: Int, y: Int, w: Int, h: Int): java.awt.Rectangle {
+    val b = window.graphicsConfiguration?.bounds
+        ?: GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+    val nw = w.coerceAtLeast(MinWinW)
+    val nh = h.coerceAtLeast(MinWinH)
+    val nx = x.coerceIn(b.x - nw + 160, b.x + b.width - 160)
+    val ny = y.coerceIn(b.y, b.y + b.height - 60)
+    return java.awt.Rectangle(nx, ny, nw, nh)
 }
 
 @Composable
@@ -196,6 +229,7 @@ private fun CloseGlyph(color: Color) {
 
 /**
  * 无边框窗口的边缘拖拽缩放（8dp 隐形手柄 + 方向光标），最大化时不显示。
+ * 顶部不放手柄：标题栏占满顶部，顶边缩放在桌面端几乎用不到，还会和拖拽/按钮打架。
  */
 @Composable
 fun WindowScope.WindowResizeHandles(
@@ -204,41 +238,50 @@ fun WindowScope.WindowResizeHandles(
 ) {
     val thickness = 8.dp
     val corner = 14.dp
+    fun edgeBounds(x: Int, y: Int, w: Int, h: Int) {
+        window.bounds = clampBounds(window, x, y, w, h)
+    }
     Box(Modifier.fillMaxSize()) {
-        // 四条边
+        // 左右边
         ResizeEdge(
             modifier = Modifier.align(Alignment.CenterStart).width(thickness).fillMaxSize(),
             cursor = Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
-        ) { dx, _ -> val b = window.bounds; val w = (b.width - dx).roundToInt().coerceAtLeast(minWidth); window.setBounds(b.x + b.width - w, b.y, w, b.height) }
+        ) { dx, _ ->
+            val b = window.bounds
+            val w = (b.width - dx).roundToInt().coerceAtLeast(minWidth)
+            edgeBounds(b.x + b.width - w, b.y, w, b.height)
+        }
         ResizeEdge(
             modifier = Modifier.align(Alignment.CenterEnd).width(thickness).fillMaxSize(),
             cursor = Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
-        ) { dx, _ -> val b = window.bounds; window.setBounds(b.x, b.y, (b.width + dx).roundToInt().coerceAtLeast(minWidth), b.height) }
-        ResizeEdge(
-            modifier = Modifier.align(Alignment.TopCenter).height(thickness).fillMaxWidth(),
-            cursor = Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
-        ) { _, dy -> val b = window.bounds; val h = (b.height - dy).roundToInt().coerceAtLeast(minHeight); window.setBounds(b.x, b.y + b.height - h, b.width, h) }
+        ) { dx, _ ->
+            val b = window.bounds
+            edgeBounds(b.x, b.y, (b.width + dx).roundToInt().coerceAtLeast(minWidth), b.height)
+        }
+        // 底边
         ResizeEdge(
             modifier = Modifier.align(Alignment.BottomCenter).height(thickness).fillMaxWidth(),
             cursor = Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
-        ) { _, dy -> val b = window.bounds; window.setBounds(b.x, b.y, b.width, (b.height + dy).roundToInt().coerceAtLeast(minHeight)) }
-        // 四个角
-        ResizeEdge(
-            modifier = Modifier.align(Alignment.TopStart).size(corner),
-            cursor = Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
-        ) { dx, dy -> val b = window.bounds; val w = (b.width - dx).roundToInt().coerceAtLeast(minWidth); val h = (b.height - dy).roundToInt().coerceAtLeast(minHeight); window.setBounds(b.x + b.width - w, b.y + b.height - h, w, h) }
-        ResizeEdge(
-            modifier = Modifier.align(Alignment.TopEnd).size(corner),
-            cursor = Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
-        ) { dx, dy -> val b = window.bounds; val h = (b.height - dy).roundToInt().coerceAtLeast(minHeight); window.setBounds(b.x, b.y + b.height - h, (b.width + dx).roundToInt().coerceAtLeast(minWidth), h) }
+        ) { _, dy ->
+            val b = window.bounds
+            edgeBounds(b.x, b.y, b.width, (b.height + dy).roundToInt().coerceAtLeast(minHeight))
+        }
+        // 底部两角
         ResizeEdge(
             modifier = Modifier.align(Alignment.BottomStart).size(corner),
             cursor = Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR)
-        ) { dx, dy -> val b = window.bounds; val w = (b.width - dx).roundToInt().coerceAtLeast(minWidth); window.setBounds(b.x + b.width - w, b.y, w, (b.height + dy).roundToInt().coerceAtLeast(minHeight)) }
+        ) { dx, dy ->
+            val b = window.bounds
+            val w = (b.width - dx).roundToInt().coerceAtLeast(minWidth)
+            edgeBounds(b.x + b.width - w, b.y, w, (b.height + dy).roundToInt().coerceAtLeast(minHeight))
+        }
         ResizeEdge(
             modifier = Modifier.align(Alignment.BottomEnd).size(corner),
             cursor = Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR)
-        ) { dx, dy -> val b = window.bounds; window.setBounds(b.x, b.y, (b.width + dx).roundToInt().coerceAtLeast(minWidth), (b.height + dy).roundToInt().coerceAtLeast(minHeight)) }
+        ) { dx, dy ->
+            val b = window.bounds
+            edgeBounds(b.x, b.y, (b.width + dx).roundToInt().coerceAtLeast(minWidth), (b.height + dy).roundToInt().coerceAtLeast(minHeight))
+        }
     }
 }
 
