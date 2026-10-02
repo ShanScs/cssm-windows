@@ -110,10 +110,18 @@ fun SessionScreen(
         val settings = CssmTermSettings(fontSize, dark)
         val w = withContext(Dispatchers.Swing) {
             try { widget?.stop() } catch (_: Exception) {}
-            // 100 列：比 80 宽，能容纳二维码等宽内容；JediTerm 会按面板实际尺寸自动调整
+            // 100 列：比 80 宽，能容纳二维码等宽内容。
+            // 禁掉 JediTerm 内置的 auto-resize（它在 SwingPanel 里会误算列数把终端挤窄），
+            // 列数锁定 100，面板多宽就显示多宽，不足时由 JediTerm 裁剪（窗口通常够宽）。
             JediTermWidget(100, 30, settings).also {
                 it.setTtyConnector(SshTtyConnector(ssh))
                 it.start()
+                try {
+                    val panel = it.terminalPanel
+                    panel.componentListeners.toList().forEach { l ->
+                        panel.removeComponentListener(l)
+                    }
+                } catch (_: Exception) {}
             }
         }
         widget = w
