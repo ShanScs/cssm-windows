@@ -41,6 +41,7 @@ class ForwardStore {
     init { scope.launch { load() } }
 
     private suspend fun load() = withContext(Dispatchers.IO) {
+        JsonFileStore.migrateTmp(file, "forwards.json.tmp")
         val list = try {
             if (file.exists()) json.decodeFromString(ListSerializer(ForwardRule.serializer()), file.readText())
             else emptyList()
@@ -50,10 +51,10 @@ class ForwardStore {
 
     private suspend fun persist(list: List<ForwardRule>) {
         try {
-            file.parentFile?.mkdirs()
-            val tmp = File(file.parentFile, "forwards.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(ForwardRule.serializer()), list))
-            tmp.renameTo(file)
+            JsonFileStore.writeAtomic(
+                file, "forwards.json.tmp",
+                json.encodeToString(ListSerializer(ForwardRule.serializer()), list)
+            )
         } catch (_: Exception) { }
         _rules.value = list.sortedBy { it.id }
     }

@@ -39,6 +39,7 @@ class ScriptStore {
     init { scope.launch { load() } }
 
     private suspend fun load() = withContext(Dispatchers.IO) {
+        JsonFileStore.migrateTmp(file, "scripts.json.tmp")
         val list = try {
             if (file.exists()) json.decodeFromString(ListSerializer(Script.serializer()), file.readText())
             else emptyList()
@@ -48,10 +49,10 @@ class ScriptStore {
 
     private suspend fun persist(list: List<Script>) {
         try {
-            file.parentFile?.mkdirs()
-            val tmp = File(file.parentFile, "scripts.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(Script.serializer()), list))
-            tmp.renameTo(file)
+            JsonFileStore.writeAtomic(
+                file, "scripts.json.tmp",
+                json.encodeToString(ListSerializer(Script.serializer()), list)
+            )
         } catch (_: Exception) { }
         _scripts.value = list.sortedBy { it.sortOrder }
     }

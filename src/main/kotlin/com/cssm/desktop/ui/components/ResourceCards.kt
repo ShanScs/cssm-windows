@@ -46,20 +46,20 @@ private val cardPalettes = listOf(
     Color(0xFFFFF3D9) to Color(0xFFFFFBEE),
 )
 
-/** 深色版色板：保留同色系的色相，加深为暗面底 */
+/** 深色版色板：珠宝色系（翡翠绿 / 红宝石 / 紫水晶 / 蓝宝石 / 琥珀金），深底上保持色相与质感 */
 private val cardPalettesDark = listOf(
-    Color(0xFF16281E) to Color(0xFF122016),
-    Color(0xFF2E1B1A) to Color(0xFF251715),
-    Color(0xFF271E33) to Color(0xFF201827),
-    Color(0xFF1A2431) to Color(0xFF141D28),
-    Color(0xFF2F2812) to Color(0xFF26200F),
+    Color(0xFF14532D) to Color(0xFF0E3B21),
+    Color(0xFF5C2430) to Color(0xFF471C25),
+    Color(0xFF43297A) to Color(0xFF34205F),
+    Color(0xFF1D4E89) to Color(0xFF173D6B),
+    Color(0xFF6B4E16) to Color(0xFF543D11),
 )
 
 /** 文件夹卡浅色渐变 */
 private val folderGradientLight = listOf(Color(0xFFFFF6DC), Color(0xFFFFFDF4))
 
-/** 文件夹卡深色渐变 */
-private val folderGradientDark = listOf(Color(0xFF2F2812), Color(0xFF26200F))
+/** 文件夹卡深色渐变（琥珀金） */
+private val folderGradientDark = listOf(Color(0xFF6B4E16), Color(0xFF543D11))
 
 /** 当前是否为深色主题（按背景亮度判断，跟随系统的三档外观都适用） */
 @Composable

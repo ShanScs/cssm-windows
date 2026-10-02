@@ -39,6 +39,8 @@ class ServerStore {
     }
 
     private suspend fun load() = withContext(Dispatchers.IO) {
+        // 旧版本 Windows renameTo bug：用残留 tmp 恢复丢失的数据（一次性）
+        JsonFileStore.migrateTmp(file, "servers.json.tmp")
         val list = try {
             if (file.exists()) json.decodeFromString(
                 ListSerializer(Server.serializer()), file.readText()
@@ -51,10 +53,10 @@ class ServerStore {
 
     private suspend fun persist(list: List<Server>) {
         try {
-            file.parentFile?.mkdirs()
-            val tmp = File(file.parentFile, "servers.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(Server.serializer()), list))
-            tmp.renameTo(file)
+            JsonFileStore.writeAtomic(
+                file, "servers.json.tmp",
+                json.encodeToString(ListSerializer(Server.serializer()), list)
+            )
         } catch (_: Exception) {
         }
         _servers.value = list.sortedBy { it.sortOrder }

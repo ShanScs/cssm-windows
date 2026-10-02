@@ -39,6 +39,7 @@ class KeyStore {
     init { scope.launch { load() } }
 
     private suspend fun load() = withContext(Dispatchers.IO) {
+        JsonFileStore.migrateTmp(file, "keys.json.tmp")
         val list = try {
             if (file.exists()) json.decodeFromString(ListSerializer(SshKey.serializer()), file.readText())
             else emptyList()
@@ -48,10 +49,10 @@ class KeyStore {
 
     private suspend fun persist(list: List<SshKey>) {
         try {
-            file.parentFile?.mkdirs()
-            val tmp = File(file.parentFile, "keys.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(SshKey.serializer()), list))
-            tmp.renameTo(file)
+            JsonFileStore.writeAtomic(
+                file, "keys.json.tmp",
+                json.encodeToString(ListSerializer(SshKey.serializer()), list)
+            )
         } catch (_: Exception) { }
         _keys.value = list.sortedBy { it.id }
     }

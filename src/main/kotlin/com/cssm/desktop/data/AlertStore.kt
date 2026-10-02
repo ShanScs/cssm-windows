@@ -61,6 +61,7 @@ class AlertStore {
     }
 
     private suspend fun loadRules() = withContext(Dispatchers.IO) {
+        JsonFileStore.migrateTmp(ruleFile, "alerts.json.tmp")
         val list = try {
             if (ruleFile.exists()) json.decodeFromString(ListSerializer(AlertRule.serializer()), ruleFile.readText())
             else emptyList()
@@ -69,6 +70,7 @@ class AlertStore {
     }
 
     private suspend fun loadItems() = withContext(Dispatchers.IO) {
+        JsonFileStore.migrateTmp(notifyFile, "notifications.json.tmp")
         val list = try {
             if (notifyFile.exists()) json.decodeFromString(ListSerializer(NotifyItem.serializer()), notifyFile.readText())
             else emptyList()
@@ -78,20 +80,20 @@ class AlertStore {
 
     private suspend fun persistRules(list: List<AlertRule>) {
         try {
-            dir.mkdirs()
-            val tmp = File(dir, "alerts.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(AlertRule.serializer()), list))
-            tmp.renameTo(ruleFile)
+            JsonFileStore.writeAtomic(
+                ruleFile, "alerts.json.tmp",
+                json.encodeToString(ListSerializer(AlertRule.serializer()), list)
+            )
         } catch (_: Exception) { }
         _rules.value = list.sortedBy { it.id }
     }
 
     private suspend fun persistItems(list: List<NotifyItem>) {
         try {
-            dir.mkdirs()
-            val tmp = File(dir, "notifications.json.tmp")
-            tmp.writeText(json.encodeToString(ListSerializer(NotifyItem.serializer()), list))
-            tmp.renameTo(notifyFile)
+            JsonFileStore.writeAtomic(
+                notifyFile, "notifications.json.tmp",
+                json.encodeToString(ListSerializer(NotifyItem.serializer()), list)
+            )
         } catch (_: Exception) { }
         _items.value = list.sortedByDescending { it.time }.take(200)
     }
