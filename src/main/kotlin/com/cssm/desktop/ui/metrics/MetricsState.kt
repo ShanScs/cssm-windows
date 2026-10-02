@@ -58,7 +58,7 @@ data class ServerMetrics(
  * 切换 tab 不会中断；彻底关闭 App 时随协程作用域结束。
  */
 class MetricsRepository(
-    private val intervalSec: Long = 3
+    private val intervalSec: Long = 1
 ) {
     private val _states = MutableStateFlow<Map<Long, ServerMetrics>>(emptyMap())
     val states: StateFlow<Map<Long, ServerMetrics>> = _states.asStateFlow()
@@ -90,7 +90,7 @@ class MetricsRepository(
 }
 
 /**
- * 单台服务器的采集循环：保持 SSH 长连接，每 3 秒采样。
+ * 单台服务器的采集循环：保持 SSH 长连接，每 1 秒采样。
  * 断线后等待 5 秒重连。由 App 级作用域驱动，App 关闭前一直运行。
  */
 internal suspend fun collectLoop(
@@ -120,7 +120,7 @@ internal suspend fun collectLoop(
                     repo.markOffline(server.id, e.message)
                     break
                 }
-                delay(3000)
+                delay(1000)
             }
         } catch (e: Exception) {
             // 连接失败
