@@ -81,7 +81,7 @@ fun SessionScreen(
         widget = null
         val err = withContext(Dispatchers.IO) {
             try {
-                ssh.connect(server, 80, 24)
+                ssh.connect(server, 100, 30)
                 // 连接成功后：OS 识别 + 地区检测（失败静默忽略）
                 try {
                     val os = OsDetector.detect(ssh)
@@ -108,35 +108,12 @@ fun SessionScreen(
     LaunchedEffect(connState, fontSize, dark) {
         if (connState != ConnState.Connected) return@LaunchedEffect
         val settings = CssmTermSettings(fontSize, dark)
-        val termFont = settings.terminalFont
         val w = withContext(Dispatchers.Swing) {
             try { widget?.stop() } catch (_: Exception) {}
-            JediTermWidget(80, 24, settings).also {
+            // 100 列：比 80 宽，能容纳二维码等宽内容；JediTerm 会按面板实际尺寸自动调整
+            JediTermWidget(100, 30, settings).also {
                 it.setTtyConnector(SshTtyConnector(ssh))
                 it.start()
-                // 显式同步终端列数/行数到面板实际像素尺寸：
-                // JediTerm 的自动 resize 在 SwingPanel 里可能不触发，导致宽内容（如二维码）被截断。
-                // 用 ComponentListener 在面板尺寸变化时按字体 metrics 重算列数，并通知 SSH PTY。
-                val panel = it.terminalPanel
-                panel.addComponentListener(object : java.awt.event.ComponentAdapter() {
-                    override fun componentResized(e: java.awt.event.ComponentEvent) {
-                        try {
-                            val fm = panel.getFontMetrics(termFont)
-                            if (fm == null || panel.width <= 0 || panel.height <= 0) return
-                            val cw = fm.charWidth('W'.code).coerceAtLeast(1)
-                            val ch = fm.height.coerceAtLeast(1)
-                            val cols = (panel.width / cw).coerceIn(20, 500)
-                            val rows = (panel.height / ch).coerceIn(5, 200)
-                            val cur = it.terminal.size
-                            if (cur.columns != cols || cur.rows != rows) {
-                                it.terminal.resize(
-                                    com.jediterm.core.util.TermSize(cols, rows),
-                                    com.jediterm.terminal.RequestOrigin.User
-                                )
-                            }
-                        } catch (_: Exception) {}
-                    }
-                })
             }
         }
         widget = w

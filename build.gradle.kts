@@ -53,7 +53,7 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.19"
+            packageVersion = "1.2.20"
             windows {
                 menu = true
                 // 安装包/快捷方式图标：构建时由 generateWinIcon 从矢量描述生成，
@@ -68,7 +68,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.19"
+                msiPackageVersion = "1.2.20"
             }
         }
     }
@@ -104,17 +104,17 @@ val generateWinIcon by tasks.registering {
             val radius = (112 * size / 512.0).toInt()
             g.fillRoundRect(0, 0, size, size, radius, radius)
             g.stroke = BasicStroke(
-                (9 * k).toFloat(),
+                (12 * k).toFloat(),
                 BasicStroke.CAP_ROUND,
                 BasicStroke.JOIN_ROUND
             )
-            // chevron > ：M32,40 L52,54 L32,68，#7DD3FC
+            // chevron > ：M4,12 L48,54 L4,96（顶满），#7DD3FC
             g.color = Color(125, 211, 252)
-            g.drawLine((32 * k).toInt(), (40 * k).toInt(), (52 * k).toInt(), (54 * k).toInt())
-            g.drawLine((52 * k).toInt(), (54 * k).toInt(), (32 * k).toInt(), (68 * k).toInt())
-            // underscore _ ：M60,72 L82,72，#6EE7B7
+            g.drawLine((4 * k).toInt(), (12 * k).toInt(), (48 * k).toInt(), (54 * k).toInt())
+            g.drawLine((48 * k).toInt(), (54 * k).toInt(), (4 * k).toInt(), (96 * k).toInt())
+            // underscore _ ：M52,96 L104,96（顶满），#6EE7B7
             g.color = Color(110, 231, 183)
-            g.drawLine((60 * k).toInt(), (72 * k).toInt(), (82 * k).toInt(), (72 * k).toInt())
+            g.drawLine((52 * k).toInt(), (96 * k).toInt(), (104 * k).toInt(), (96 * k).toInt())
             g.dispose()
             val bos = ByteArrayOutputStream()
             ImageIO.write(img, "png", bos)
