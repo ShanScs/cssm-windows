@@ -101,7 +101,11 @@ fun TerminalScreen(
                 }
                 if (recentExpanded) {
                     items(recent, key = { "recent-${it.id}" }) { server ->
-                        ServerResourceCard(server = server, onClick = { onOpen(server.id) })
+                        ServerResourceCard(
+                            server = server,
+                            onClick = { onOpen(server.id) },
+                            isRecentSession = true
+                        )
                     }
                     item(span = { GridItemSpan(3) }, key = "recent-gap") {
                         Spacer(Modifier.height(4.dp))

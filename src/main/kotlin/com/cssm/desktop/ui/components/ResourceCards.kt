@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -87,68 +90,97 @@ fun relativeTime(ts: Long): String {
     }
 }
 
+/**
+ * 服务器资源卡（统一卡片语言）：深色/浅色主题卡底 + 左侧彩色条（按 server id 稳定取色）。
+ * 标题 SemiBold，说明文字常规字重；最近会话卡右上角加时钟角标以示区分。
+ */
 @Composable
 fun ServerResourceCard(
     server: Server,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isRecentSession: Boolean = false,
 ) {
-    val (c1, c2) = server.cardPalette()
+    val accent = server.cardPalette().first
+    val onSurface = MaterialTheme.colorScheme.onSurface
     val gray = MaterialTheme.colorScheme.onSurfaceVariant
-    val titleColor = MaterialTheme.colorScheme.onSurface
+    val cardShape = RoundedCornerShape(14.dp)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Brush.horizontalGradient(listOf(c1, c2)))
+            .clip(cardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .hoverBorder(cardShape)
             .clickable(onClick = onClick)
             .height(cardHeight)
-            .padding(14.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ServerNameWithFlag(
-                    server = server,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = titleColor,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                Spacer(Modifier.width(5.dp))
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFF3B30))
-                )
-                Spacer(Modifier.width(10.dp))
-                OsBadge(osId = server.osId, size = 30.dp)
-            }
-            Spacer(Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = server.displayTarget,
-                        fontSize = 11.sp,
-                        color = gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+        Row(Modifier.fillMaxSize()) {
+            // 左侧彩色条
+            Box(
+                Modifier.width(4.dp).fillMaxHeight()
+                    .background(
+                        accent,
+                        RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp)
                     )
-                    Spacer(Modifier.height(2.dp))
+            )
+            Column(
+                modifier = Modifier.weight(1f)
+                    .fillMaxHeight()
+                    .padding(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ServerNameWithFlag(
+                        server = server,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onSurface,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFF3B30))
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    OsBadge(osId = server.osId, size = 30.dp)
+                    if (isRecentSession) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Filled.Schedule,
+                            contentDescription = "最近会话",
+                            tint = gray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = server.displayTarget,
+                            fontSize = 11.sp,
+                            color = gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = server.osName.ifBlank { "未知系统" },
+                            fontSize = 11.sp,
+                            color = gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text = server.osName.ifBlank { "未知系统" },
+                        text = relativeTime(server.lastConnectedAt),
                         fontSize = 11.sp,
                         color = gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 1
                     )
                 }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = relativeTime(server.lastConnectedAt),
-                    fontSize = 11.sp,
-                    color = gray,
-                    maxLines = 1
-                )
             }
         }
     }
@@ -166,12 +198,14 @@ fun FolderResourceCard(
     val gray = MaterialTheme.colorScheme.onSurfaceVariant
     val titleColor = MaterialTheme.colorScheme.onSurface
     val gradient = if (isDarkTheme()) folderGradientDark else folderGradientLight
+    val cardShape = RoundedCornerShape(14.dp)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(cardShape)
             .background(
                 Brush.horizontalGradient(gradient)
             )
+            .hoverBorder(cardShape)
             .clickable(onClick = onClick)
             .height(cardHeight)
             .padding(14.dp)

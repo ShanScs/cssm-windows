@@ -28,6 +28,7 @@ import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.IpadTitle
 import com.cssm.desktop.ui.components.RegionSegment
+import com.cssm.desktop.ui.theme.UiPrefs
 
 /**
  * 指标页（iPad 风格）：标题 + 地区分段 + 三列服务器卡片。
@@ -43,6 +44,7 @@ fun MetricsScreen(
     val servers by store.servers.collectAsState()
     val states by repo.states.collectAsState()
     val ping by CarrierPing.state.collectAsState()
+    val compact by UiPrefs.compactMetrics.collectAsState()
     val pingScope = rememberCoroutineScope()
 
     // 服务器被删除时清理状态
@@ -107,7 +109,8 @@ fun MetricsScreen(
                     metrics = states[server.id],
                     ping = ping,
                     onOpen = { onOpen(server.id) },
-                    onPingRefresh = { CarrierPing.probeNow(pingScope) }
+                    onPingRefresh = { CarrierPing.probeNow(pingScope) },
+                    compact = compact
                 )
             }
         }

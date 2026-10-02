@@ -43,6 +43,7 @@ import com.cssm.desktop.ui.components.FlagImage
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.OsBadge
+import com.cssm.desktop.ui.components.hoverBorder
 
 private val NeoGreen = Color(0xFF3FB950)
 private val NeoBlue = Color(0xFF58A6FF)
@@ -54,6 +55,7 @@ private val NeoRed = Color(0xFFFF453A)
  * 标题行（状态点 + 地区名称 … 刷新/系统图标/国旗）→ 在线天数/价格 pill →
  * CPU/内存/硬盘/流量四行（百分比 + 进度条 + 明细）→
  * 网速/总量/到期三小面板 → 三网延迟 → 总流量/丢包+延迟柱状图。
+ * compact=true 时只保留标题/pill/CPU/内存/网速单行（约一半高度）。
  * 点击卡片进入服务器信息编辑。
  */
 @Composable
@@ -63,7 +65,8 @@ fun ServerMetricCard(
     ping: PingState,
     onOpen: () -> Unit,
     onPingRefresh: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     val stats: MonitorStats? = metrics?.stats
     val online = metrics?.online != false
@@ -75,6 +78,7 @@ fun ServerMetricCard(
     IpadCard(
         modifier = modifier
             .alpha(if (dimmed) 0.6f else 1f)
+            .hoverBorder(RoundedCornerShape(16.dp))
             .clickable(onClick = onOpen)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -145,6 +149,31 @@ fun ServerMetricCard(
                     modifier = Modifier.weight(1f)
                 )
             }
+            if (compact) {
+                // ---- 紧凑模式：网速单行 ----
+                Spacer(Modifier.height(10.dp))
+                IpadSubPanel(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 12.dp, vertical = 9.dp
+                    )
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "↑ ${if (hasData) formatRate(stats!!.txBytesPerSec) else "—"}",
+                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeoGreen,
+                            modifier = Modifier.weight(1f), maxLines = 1
+                        )
+                        Text(
+                            text = "↓ ${if (hasData) formatRate(stats!!.rxBytesPerSec) else "—"}",
+                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeoBlue,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            if (!compact) {
             Spacer(Modifier.height(10.dp))
 
             // ---- 硬盘 / 流量 ----
@@ -298,6 +327,7 @@ fun ServerMetricCard(
                     PingBars(bars = ping.bars, modifier = Modifier.fillMaxWidth())
                 }
             }
+            } // if (!compact)
         }
     }
 }

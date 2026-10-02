@@ -19,10 +19,12 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadMoreRow
+import com.cssm.desktop.ui.theme.UiPrefs
 import com.cssm.desktop.ui.components.IpadTitle
 import com.cssm.desktop.ui.theme.ThemeMode
 import com.cssm.desktop.ui.theme.ThemePrefs
@@ -129,6 +132,28 @@ fun MoreScreen(
                             ThemeOption("深色", ThemeMode.DARK, mode)
                             ThemeOption("浅色", ThemeMode.LIGHT, mode)
                         }
+                        val compact by UiPrefs.compactMetrics.collectAsState()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "指标卡紧凑模式",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    "只显示标题、CPU、内存和网速",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = compact,
+                                onCheckedChange = { UiPrefs.setCompactMetrics(it) }
+                            )
+                        }
                     }
                 }
             }
@@ -138,7 +163,7 @@ fun MoreScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("关于", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(
-                            "Cssm 桌面版 1.2.0\n服务器管理 · SSH 终端",
+                            "Cssm 桌面版 1.2.7\n服务器管理 · SSH 终端",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
