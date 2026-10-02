@@ -38,12 +38,14 @@ dependencies {
     // 终端模拟器（Swing，嵌进 Compose）
     implementation("org.jetbrains.jediterm:jediterm-core:3.64")
     implementation("org.jetbrains.jediterm:jediterm-ui:3.64")
-    // JNA：Windows 原生标题栏拖拽（WM_NCLBUTTONDOWN + HTCAPTION），构建时自动下载
-    // builtBy 确保 downloadJna 先跑，否则 files() 会被提前解析成空导致 jar 打不进 MSI
-    implementation(files(
-        layout.buildDirectory.file("jna-libs/jna-5.6.0.jar"),
-        layout.buildDirectory.file("jna-libs/jna-platform-5.6.0.jar")
-    ).builtBy("downloadJna"))
+    // JNA：Windows 原生标题栏拖拽（WM_NCLBUTTONDOWN + HTCAPTION）
+    // 沙箱代理下不到 Maven，用 curl 预下载到 libs/（不提交）；Actions 直连用 Maven 坐标
+    val jnaJars = files("libs/jna-5.6.0.jar", "libs/jna-platform-5.6.0.jar")
+    if (jnaJars.files.all { it.exists() }) {
+        implementation(jnaJars)
+    } else {
+        implementation("net.java.dev.jna:jna-platform:5.6.0")
+    }
     // 协程 Swing 调度器 / JSON 存储
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
@@ -58,7 +60,7 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.12"
+            packageVersion = "1.2.13"
             windows {
                 menu = true
                 // 安装包/快捷方式图标：构建时由 generateWinIcon 从矢量描述生成，
@@ -73,7 +75,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.12"
+                msiPackageVersion = "1.2.13"
             }
         }
     }
@@ -156,39 +158,4 @@ tasks.matching { it.name.contains("package") && it.name.contains("Msi", ignoreCa
 
 
 
-// JNA 下载：push_files 传不了二进制，构建时从 Maven Central 拉取（Actions 机器有外网）
-val jnaArtifacts = listOf(
-    "net/java/dev/jna/jna/5.6.0/jna-5.6.0.jar",
-    "net/java/dev/jna/jna-platform/5.6.0/jna-platform-5.6.0.jar"
-)
-tasks.register("downloadJna") {
-    val outDir = layout.buildDirectory.dir("jna-libs")
-    outputs.dir(outDir)
-    doLast {
-        val dir = outDir.get().asFile.apply { mkdirs() }
-        for (path in jnaArtifacts) {
-            val name = path.substringAfterLast("/")
-            val file = dir.resolve(name)
-            if (file.exists()) continue
-            val url = "https://repo1.maven.org/maven2/$path"
-            val ok = try {
-                logger.lifecycle("Downloading $url")
-                URI(url).toURL().openStream().use { input ->
-                    file.outputStream().use { input.copyTo(it) }
-                }
-                true
-            } catch (e: Exception) {
-                logger.warn("Java download failed (${e.message}), trying curl")
-                false
-            }
-            if (!ok) {
-                project.exec { commandLine("curl", "-sSL", "-o", file.absolutePath, url) }
-                if (!file.exists() || file.length() == 0L) {
-                    throw GradleException("Failed to download $url")
-                }
-            }
-        }
-    }
-}
-tasks.named("compileKotlin") { dependsOn("downloadJna") }
 
