@@ -120,8 +120,12 @@ fun SessionScreen(
 
     DisposableEffect(server.id) {
         onDispose {
-            try { widget?.stop() } catch (_: Exception) {}
-            ssh.disconnect()
+            // 后台断开：SSHJ 的 disconnect 在网络异常时可能阻塞，绝不能卡 UI 线程
+            val w = widget
+            Thread {
+                try { w?.stop() } catch (_: Exception) {}
+                try { ssh.disconnect() } catch (_: Exception) {}
+            }.apply { isDaemon = true; name = "ssh-disconnect" }.start()
         }
     }
 

@@ -128,7 +128,7 @@ fun WindowScope.CustomTitleBar(
                 androidx.compose.foundation.Image(
                     painter = appIcon,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(32.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
