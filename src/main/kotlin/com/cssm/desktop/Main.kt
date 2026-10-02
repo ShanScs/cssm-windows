@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.rememberWindowState
 import com.cssm.desktop.data.ServerStore
+import com.cssm.desktop.ui.components.AppIconPainter
 import com.cssm.desktop.ui.components.CustomTitleBar
 import com.cssm.desktop.ui.components.WindowResizeHandles
 import com.cssm.desktop.ui.components.ipadBlue
@@ -160,7 +160,7 @@ fun main() = application {
             title = "Cssm",
             state = windowState,
             undecorated = true,
-            icon = painterResource("icon.png")
+            icon = remember { AppIconPainter() }
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
