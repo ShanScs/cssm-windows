@@ -159,18 +159,34 @@ val jnaArtifacts = listOf(
     "net/java/dev/jna/jna/5.6.0/jna-5.6.0.jar",
     "net/java/dev/jna/jna-platform/5.6.0/jna-platform-5.6.0.jar"
 )
-val downloadJna by tasks.registering(Exec::class) {
-    val outDir = layout.buildDirectory.dir("jna-libs").get().asFile.apply { mkdirs() }
+val downloadJna by tasks.registering {
+    val outDir = layout.buildDirectory.dir("jna-libs")
     outputs.dir(outDir)
-    // 已下载则跳过
-    onlyIf { jnaArtifacts.any { !outDir.resolve(it.substringAfterLast("/")).exists() } }
-    commandLine(
-        "sh", "-c",
-        jnaArtifacts.joinToString(" && ") { path ->
+    doLast {
+        val dir = outDir.get().asFile.apply { mkdirs() }
+        for (path in jnaArtifacts) {
             val name = path.substringAfterLast("/")
-            "curl -sSL -o ${outDir.resolve(name).absolutePath} https://repo1.maven.org/maven2/$path"
+            val file = dir.resolve(name)
+            if (file.exists()) continue
+            val url = "https://repo1.maven.org/maven2/$path"
+            val ok = try {
+                logger.lifecycle("Downloading $url")
+                URI(url).toURL().openStream().use { input ->
+                    file.outputStream().use { input.copyTo(it) }
+                }
+                true
+            } catch (e: Exception) {
+                logger.warn("Java download failed (${e.message}), trying curl")
+                false
+            }
+            if (!ok) {
+                project.exec { commandLine("curl", "-sSL", "-o", file.absolutePath, url) }
+                if (!file.exists() || file.length() == 0L) {
+                    throw GradleException("Failed to download $url")
+                }
+            }
         }
-    )
+    }
 }
 tasks.named("compileKotlin") { dependsOn(downloadJna) }
 
