@@ -16,7 +16,7 @@ class CssmTermSettings(fontSize: Float, private val dark: Boolean = false) : Def
     private val size = fontSize.coerceIn(8f, 24f)
 
     override fun getTerminalFont(): Font =
-        Font(Font.MONOSPACED, Font.PLAIN, size.toInt())
+        Font(Font.MONOSPACED, Font.BOLD, size.toInt())
 
     override fun getTerminalFontSize(): Float = size
 
@@ -41,9 +41,9 @@ class CssmTermSettings(fontSize: Float, private val dark: Boolean = false) : Def
 
         fun loadFontSize(): Float =
             try {
-                prefs.getFloat(KEY_FONT_SIZE, 13f).coerceIn(8f, 24f)
+                prefs.getFloat(KEY_FONT_SIZE, 15f).coerceIn(8f, 24f)
             } catch (_: Exception) {
-                13f
+                15f
             }
 
         fun saveFontSize(size: Float) {

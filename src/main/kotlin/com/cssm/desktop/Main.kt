@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -169,12 +168,10 @@ fun main() = application {
             val maximized = windowState.placement == WindowPlacement.Maximized
             val corner = if (maximized) 0.dp else 8.dp
             // 透明窗口 + Compose 抗锯齿圆角背景（替代 AWT shape 硬裁剪，避免圆角毛边）；
-            // 阴影自己画（透明窗口没有系统阴影），最大化时直角无阴影
+            // 最大化时直角
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(
                     modifier = Modifier.fillMaxSize()
-                        .padding(if (maximized) 0.dp else 10.dp)
-                        .shadow(if (maximized) 0.dp else 14.dp, RoundedCornerShape(corner))
                         .clip(RoundedCornerShape(corner))
                         .background(MaterialTheme.colorScheme.background)
                 ) {

@@ -91,24 +91,29 @@ fun WindowScope.CustomTitleBar(
                             awaitTouchSlopOrCancellation(down.id) { change, _ ->
                                 change.consume()
                             } ?: return@awaitEachGesture
-                            // 优先 Windows 原生标题栏拖拽（JNA 缺失/异常时回退到 setLocation 循环）
-                            if (!tryNativeCaptionDrag(window)) {
-                                var prev = down.position
+                            // 拖拽：用 AWT 绝对坐标（MouseInfo 拿光标设备像素），
+                            // 不经过 Compose 坐标系，彻底避开 DPI 换算问题
+                            try {
+                                val cursorStart = java.awt.MouseInfo.getPointerInfo()?.location
+                                    ?: return@awaitEachGesture
+                                val winStart = window.locationOnScreen
+                                val offsetX = cursorStart.x - winStart.x
+                                val offsetY = cursorStart.y - winStart.y
                                 while (true) {
                                     val event = awaitPointerEvent()
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
                                     if (!change.pressed) break
-                                    val delta = change.position - prev
-                                    prev = change.position
                                     change.consume()
-                                    val loc = window.locationOnScreen
+                                    val cursor = java.awt.MouseInfo.getPointerInfo()?.location ?: break
                                     val (nx, ny) = clampPosition(
                                         window,
-                                        (loc.x + delta.x).roundToInt(),
-                                        (loc.y + delta.y).roundToInt()
+                                        cursor.x - offsetX,
+                                        cursor.y - offsetY
                                     )
                                     window.setLocation(nx, ny)
                                 }
+                            } catch (_: Exception) {
+                                // 忽略，松手结束
                             }
                         }
                     }
@@ -123,7 +128,7 @@ fun WindowScope.CustomTitleBar(
                 androidx.compose.foundation.Image(
                     painter = appIcon,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(

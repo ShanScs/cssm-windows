@@ -38,8 +38,7 @@ dependencies {
     // 终端模拟器（Swing，嵌进 Compose）
     implementation("org.jetbrains.jediterm:jediterm-core:3.64")
     implementation("org.jetbrains.jediterm:jediterm-ui:3.64")
-    // JNA：Windows 原生标题栏拖拽（WM_NCLBUTTONDOWN + HTCAPTION）
-    implementation("net.java.dev.jna:jna-platform:5.6.0")
+    // JNA 已移除：改用 AWT 绝对坐标拖拽，不再需要
     // 协程 Swing 调度器 / JSON 存储
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
@@ -54,7 +53,7 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.14"
+            packageVersion = "1.2.15"
             windows {
                 menu = true
                 // 安装包/快捷方式图标：构建时由 generateWinIcon 从矢量描述生成，
@@ -69,7 +68,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.14"
+                msiPackageVersion = "1.2.15"
             }
         }
     }
