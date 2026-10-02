@@ -41,3 +41,19 @@ fun startNativeCaptionDrag(window: Window) {
         start()
     }
 }
+
+/**
+ * 尝试原生拖拽：先检查 JNA 类是否存在（jar 没打进安装包时直接返回 false，
+ * 调用方回退到 setLocation 循环，保证拖拽永远可用）。
+ */
+fun tryNativeCaptionDrag(window: Window): Boolean {
+    if (!System.getProperty("os.name", "").startsWith("Windows", ignoreCase = true)) return false
+    try {
+        Class.forName("com.sun.jna.Native")
+        Class.forName("com.sun.jna.platform.win32.User32")
+    } catch (_: Throwable) {
+        return false
+    }
+    startNativeCaptionDrag(window)
+    return true
+}

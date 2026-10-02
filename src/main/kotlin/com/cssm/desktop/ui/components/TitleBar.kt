@@ -91,13 +91,8 @@ fun WindowScope.CustomTitleBar(
                             awaitTouchSlopOrCancellation(down.id) { change, _ ->
                                 change.consume()
                             } ?: return@awaitEachGesture
-                            // 拖拽已确认：优先走 Windows 原生标题栏拖拽
-                            // （系统处理 Snap/多屏/DPI，比自己 setLocation 可靠）
-                            startNativeCaptionDrag(window)
-                            if (!System.getProperty("os.name", "")
-                                    .startsWith("Windows", ignoreCase = true)
-                            ) {
-                                // 非 Windows 回退：setLocation 跟随
+                            // 优先 Windows 原生标题栏拖拽（JNA 缺失/异常时回退到 setLocation 循环）
+                            if (!tryNativeCaptionDrag(window)) {
                                 var prev = down.position
                                 while (true) {
                                     val event = awaitPointerEvent()

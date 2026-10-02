@@ -197,9 +197,12 @@ fun SessionScreen(
                     val w = widget
                     if (w != null) {
                         key(w) {
+                            // Swing 是重量级组件，无视 Compose 的圆角 clip；
+                            // 底部留出圆角半径的安全区，避免方形终端盖住窗口圆角
                             SwingPanel(
                                 factory = { w },
                                 modifier = Modifier.fillMaxSize()
+                                    .padding(bottom = 8.dp)
                             )
                         }
                     } else {

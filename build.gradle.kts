@@ -2,6 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.awt.BasicStroke
 import java.awt.Color
 import java.net.URI
+import org.gradle.api.Task
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -38,10 +39,11 @@ dependencies {
     implementation("org.jetbrains.jediterm:jediterm-core:3.64")
     implementation("org.jetbrains.jediterm:jediterm-ui:3.64")
     // JNA：Windows 原生标题栏拖拽（WM_NCLBUTTONDOWN + HTCAPTION），构建时自动下载
+    // builtBy 确保 downloadJna 先跑，否则 files() 会被提前解析成空导致 jar 打不进 MSI
     implementation(files(
         layout.buildDirectory.file("jna-libs/jna-5.6.0.jar"),
         layout.buildDirectory.file("jna-libs/jna-platform-5.6.0.jar")
-    ))
+    ).builtBy("downloadJna"))
     // 协程 Swing 调度器 / JSON 存储
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
@@ -56,7 +58,7 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.11"
+            packageVersion = "1.2.12"
             windows {
                 menu = true
                 // 安装包/快捷方式图标：构建时由 generateWinIcon 从矢量描述生成，
@@ -71,7 +73,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.11"
+                msiPackageVersion = "1.2.12"
             }
         }
     }
@@ -159,7 +161,7 @@ val jnaArtifacts = listOf(
     "net/java/dev/jna/jna/5.6.0/jna-5.6.0.jar",
     "net/java/dev/jna/jna-platform/5.6.0/jna-platform-5.6.0.jar"
 )
-val downloadJna by tasks.registering {
+tasks.register("downloadJna") {
     val outDir = layout.buildDirectory.dir("jna-libs")
     outputs.dir(outDir)
     doLast {
@@ -188,5 +190,5 @@ val downloadJna by tasks.registering {
         }
     }
 }
-tasks.named("compileKotlin") { dependsOn(downloadJna) }
+tasks.named("compileKotlin") { dependsOn("downloadJna") }
 

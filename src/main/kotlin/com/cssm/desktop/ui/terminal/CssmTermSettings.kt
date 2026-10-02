@@ -1,6 +1,7 @@
 package com.cssm.desktop.ui.terminal
 
 import com.jediterm.terminal.TerminalColor
+import com.jediterm.terminal.TextStyle
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider
 import java.awt.Font
 import java.util.prefs.Preferences
@@ -24,6 +25,14 @@ class CssmTermSettings(fontSize: Float, private val dark: Boolean = false) : Def
 
     override fun getDefaultForeground(): TerminalColor =
         if (dark) TerminalColor(0xE6, 0xED, 0xF3) else TerminalColor.BLACK
+
+    /**
+     * 默认文本样式：普通文本（无 ANSI 颜色码）的单元格用这个渲染。
+     * 只重写 getDefaultBackground 的话，文字格子还是默认样式的白底，
+     * 深色下会出现"白字块"（Tony 截图里的白底黑字）。
+     */
+    override fun getDefaultStyle(): TextStyle =
+        TextStyle(getDefaultForeground(), getDefaultBackground())
 
     companion object {
         private const val KEY_FONT_SIZE = "term_font_size"
