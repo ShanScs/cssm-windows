@@ -128,3 +128,9 @@ fun CssmTheme(
         content = content
     )
 }
+
+/**
+ * 指标数字等宽字体：网速 1 秒刷新一次时，数字宽度不变，整行不抖动。
+ * Windows 上对应 Consolas，无需内嵌字体文件。
+ */
+val MonoDigits = androidx.compose.ui.text.font.FontFamily.Monospace

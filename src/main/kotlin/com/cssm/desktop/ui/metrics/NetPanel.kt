@@ -1,5 +1,11 @@
 package com.cssm.desktop.ui.metrics
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,8 +21,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -90,7 +98,7 @@ fun NetDottedPanel(
     }
 }
 
-/** OS 名前的小状态点：在线绿 / 无数据琥珀 / 离线红（iPad 卡片同款琥珀点） */
+/** OS 名前的小状态点：在线绿 / 无数据琥珀 / 离线红（iPad 卡片同款琥珀点）；在线时柔和呼吸 */
 @Composable
 fun StatusDot(online: Boolean, hasData: Boolean) {
     val color = when {
@@ -98,9 +106,20 @@ fun StatusDot(online: Boolean, hasData: Boolean) {
         !hasData -> Color(0xFFD6985D)
         else -> Color(0xFF34C77B)
     }
+    val infinite = rememberInfiniteTransition(label = "dot-pulse")
+    val alpha by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot-alpha"
+    )
     Box(
         modifier = Modifier
             .size(6.dp)
+            .alpha(if (online && hasData) alpha else 1f)
             .clip(CircleShape)
             .background(color)
     )

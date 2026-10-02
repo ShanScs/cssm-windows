@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeviceHub
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.PlayArrow
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
+import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.IpadTitle
@@ -65,6 +67,7 @@ fun ContainersScreen(
     onDocker: (Long) -> Unit,
     onSession: (Long) -> Unit,
     onSftp: (Long) -> Unit,
+    onAddServer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val servers by store.servers.collectAsState()
@@ -111,14 +114,14 @@ fun ContainersScreen(
         }
 
         if (filtered.isEmpty()) {
-            IpadCard(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "还没有服务器，去「更多 → 服务器」点击 + 添加",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
+            EmptyState(
+                icon = Icons.Filled.Inventory2,
+                title = "还没有服务器",
+                subtitle = "添加服务器后，查看它的 Docker 容器",
+                actionLabel = "添加服务器",
+                onAction = onAddServer,
+                modifier = Modifier.fillMaxSize()
+            )
             return
         }
 

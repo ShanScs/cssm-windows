@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.OsBadge
+import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.osDisplayName
 import kotlinx.coroutines.launch
 
@@ -102,18 +104,14 @@ fun ServersScreen(
         }
 
         if (servers.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("还没有服务器", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "点右上角「+ 添加」增加第一台服务器",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+            EmptyState(
+                icon = Icons.Filled.Dns,
+                title = "还没有服务器",
+                subtitle = "增加第一台服务器，开始管理",
+                actionLabel = "添加服务器",
+                onAction = onAdd,
+                modifier = Modifier.fillMaxSize()
+            )
             return
         }
 

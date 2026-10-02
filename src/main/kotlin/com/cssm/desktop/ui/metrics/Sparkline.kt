@@ -68,8 +68,22 @@ fun Sparkline(
                         pathEffect = dash
                     )
                 } else {
+                    // 先画渐变填充（面积图），再画点状线
+                    val line = pathFor(values)
+                    val fill = Path().apply {
+                        addPath(line)
+                        lineTo(w, h)
+                        lineTo(0f, h)
+                        close()
+                    }
                     drawPath(
-                        pathFor(values),
+                        fill,
+                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(color.copy(alpha = 0.28f), color.copy(alpha = 0.02f))
+                        )
+                    )
+                    drawPath(
+                        line,
                         color = color,
                         style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, pathEffect = dash)
                     )
@@ -79,8 +93,25 @@ fun Sparkline(
             drawSeries(up, upColor)
         } else {
             val stroke = 1.5.dp.toPx()
-            drawPath(pathFor(down), color = downColor, style = Stroke(stroke))
-            drawPath(pathFor(up), color = upColor, style = Stroke(stroke))
+            fun drawSolid(values: List<Long>, color: Color) {
+                if (values.isEmpty()) return
+                val line = pathFor(values)
+                val fill = Path().apply {
+                    addPath(line)
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                drawPath(
+                    fill,
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(color.copy(alpha = 0.25f), Color.Transparent)
+                    )
+                )
+                drawPath(line, color = color, style = Stroke(stroke))
+            }
+            drawSolid(down, downColor)
+            drawSolid(up, upColor)
         }
     }
 }

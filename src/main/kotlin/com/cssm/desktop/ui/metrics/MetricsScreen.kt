@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
+import com.cssm.desktop.ui.components.cardEntrance
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.IpadTitle
+import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.RegionSegment
 import com.cssm.desktop.ui.theme.UiPrefs
 
@@ -39,6 +44,7 @@ fun MetricsScreen(
     store: ServerStore,
     repo: MetricsRepository,
     onOpen: (Long) -> Unit,
+    onAddServer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val servers by store.servers.collectAsState()
@@ -83,16 +89,14 @@ fun MetricsScreen(
         }
 
         if (servers.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "还没有服务器，去「更多 → 服务器」点击 + 添加",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            EmptyState(
+                icon = Icons.Filled.Dns,
+                title = "还没有服务器",
+                subtitle = "添加第一台服务器，开始实时监控它的状态",
+                actionLabel = "添加服务器",
+                onAction = onAddServer,
+                modifier = Modifier.fillMaxSize()
+            )
             return
         }
 
@@ -103,14 +107,15 @@ fun MetricsScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(filtered, key = { it.id }) { server ->
+            itemsIndexed(filtered, key = { _, s -> s.id }) { index, server ->
                 ServerMetricCard(
                     server = server,
                     metrics = states[server.id],
                     ping = ping,
                     onOpen = { onOpen(server.id) },
                     onPingRefresh = { CarrierPing.probeNow(pingScope) },
-                    compact = compact
+                    compact = compact,
+                    modifier = Modifier.cardEntrance(index)
                 )
             }
         }

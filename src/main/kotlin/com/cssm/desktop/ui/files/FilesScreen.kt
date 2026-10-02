@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +34,9 @@ import com.cssm.desktop.ui.components.FolderResourceCard
 import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadTitle
 import com.cssm.desktop.ui.components.RegionSegment
+import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.ServerResourceCard
+import com.cssm.desktop.ui.components.cardEntrance
 import com.cssm.desktop.ui.components.ipadBlue
 import kotlinx.coroutines.launch
 
@@ -45,6 +48,7 @@ fun FilesScreen(
     store: ServerStore,
     onOpenSftp: (Long) -> Unit,
     onOpenLocal: () -> Unit,
+    onAddServer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val servers by store.servers.collectAsState()
@@ -98,22 +102,22 @@ fun FilesScreen(
                         onClick = onOpenLocal
                     )
                 }
-                items(filtered, key = { it.id }) { server ->
+                itemsIndexed(filtered, key = { _, s -> s.id }) { index, server ->
                     ServerResourceCard(
                         server = server,
-                        onClick = { onOpenSftp(server.id) }
+                        onClick = { onOpenSftp(server.id) },
+                        modifier = Modifier.cardEntrance(index)
                     )
                 }
                 if (filtered.isEmpty()) {
                     item(span = { GridItemSpan(3) }, key = "hint") {
-                        IpadCard {
-                            Text(
-                                text = "还没有服务器，去「更多 → 服务器」点击 + 添加",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(20.dp)
-                            )
-                        }
+                        EmptyState(
+                            icon = Icons.Filled.Folder,
+                            title = "还没有服务器",
+                            subtitle = "添加服务器后，通过 SFTP 管理它的文件",
+                            actionLabel = "添加服务器",
+                            onAction = onAddServer
+                        )
                     }
                 }
             }

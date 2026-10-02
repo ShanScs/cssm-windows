@@ -38,9 +38,11 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.7"
+            packageVersion = "1.2.8"
             windows {
                 menu = true
+                // 安装包/快捷方式图标：安卓版图标（终端提示符 >_）
+                iconFile.set(file("packaging/icon.ico"))
                 // 开始菜单里建 "Cssm" 文件夹：应用和卸载入口分开放，
                 // 避免快捷方式被归到名字奇怪的分组（jpackage 默认按 vendor 分组）
                 menuGroup = "Cssm"
@@ -50,7 +52,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.7"
+                msiPackageVersion = "1.2.8"
             }
         }
     }

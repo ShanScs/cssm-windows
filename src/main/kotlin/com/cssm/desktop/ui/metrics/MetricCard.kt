@@ -1,5 +1,11 @@
 package com.cssm.desktop.ui.metrics
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,6 +51,7 @@ import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadSubPanel
 import com.cssm.desktop.ui.components.OsBadge
 import com.cssm.desktop.ui.components.hoverBorder
+import com.cssm.desktop.ui.theme.MonoDigits
 
 private val NeoGreen = Color(0xFF3FB950)
 private val NeoBlue = Color(0xFF58A6FF)
@@ -84,10 +92,22 @@ fun ServerMetricCard(
         Column(modifier = Modifier.padding(14.dp)) {
             // ---- 标题行 ----
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val dotOn = online && hasData
+                val dotPulse = rememberInfiniteTransition(label = "card-dot")
+                val dotAlpha by dotPulse.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.35f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "card-dot-alpha"
+                )
                 Box(
                     modifier = Modifier.size(8.dp)
+                        .alpha(if (dotOn) dotAlpha else 1f)
                         .clip(CircleShape)
-                        .background(if (online && hasData) NeoGreen else NeoRed)
+                        .background(if (dotOn) NeoGreen else NeoRed)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -162,11 +182,13 @@ fun ServerMetricCard(
                         Text(
                             text = "↑ ${if (hasData) formatRate(stats!!.txBytesPerSec) else "—"}",
                             fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeoGreen,
+                            fontFamily = MonoDigits,
                             modifier = Modifier.weight(1f), maxLines = 1
                         )
                         Text(
                             text = "↓ ${if (hasData) formatRate(stats!!.rxBytesPerSec) else "—"}",
                             fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeoBlue,
+                            fontFamily = MonoDigits,
                             maxLines = 1
                         )
                     }
@@ -274,7 +296,8 @@ fun ServerMetricCard(
                         } else {
                             Text(
                                 text = ping.latencies[c.name]?.toString() ?: "—",
-                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.color
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.color,
+                                fontFamily = MonoDigits
                             )
                         }
                     }
@@ -320,7 +343,8 @@ fun ServerMetricCard(
                         Text(text = "丢包", fontSize = 12.sp, color = gray, modifier = Modifier.weight(1f))
                         Text(
                             text = if (allUnreachable) "—" else "%.1f%%".format(ping.lossPct),
-                            fontSize = 17.sp, fontWeight = FontWeight.Bold, color = lossColor
+                            fontSize = 17.sp, fontWeight = FontWeight.Bold, color = lossColor,
+                            fontFamily = MonoDigits
                         )
                     }
                     Spacer(Modifier.height(4.dp))
@@ -420,6 +444,7 @@ private fun RowScope.MetricBar(
             text = sub,
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = MonoDigits,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -434,6 +459,7 @@ private fun MiniLine(text: String, color: Color) {
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         color = color,
+        fontFamily = MonoDigits,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
     )

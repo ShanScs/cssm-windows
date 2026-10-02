@@ -11,7 +11,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +34,9 @@ import com.cssm.desktop.ui.components.IpadCard
 import com.cssm.desktop.ui.components.IpadSectionHeader
 import com.cssm.desktop.ui.components.IpadTitle
 import com.cssm.desktop.ui.components.RegionSegment
+import com.cssm.desktop.ui.components.EmptyState
 import com.cssm.desktop.ui.components.ServerResourceCard
+import com.cssm.desktop.ui.components.cardEntrance
 import com.cssm.desktop.ui.components.ipadBlue
 
 /**
@@ -41,6 +46,7 @@ import com.cssm.desktop.ui.components.ipadBlue
 fun TerminalScreen(
     store: ServerStore,
     onOpen: (Long) -> Unit,
+    onAddServer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val servers by store.servers.collectAsState()
@@ -100,11 +106,12 @@ fun TerminalScreen(
                     )
                 }
                 if (recentExpanded) {
-                    items(recent, key = { "recent-${it.id}" }) { server ->
+                    itemsIndexed(recent, key = { _, s -> "recent-${s.id}" }) { index, server ->
                         ServerResourceCard(
                             server = server,
                             onClick = { onOpen(server.id) },
-                            isRecentSession = true
+                            isRecentSession = true,
+                            modifier = Modifier.cardEntrance(index)
                         )
                     }
                     item(span = { GridItemSpan(3) }, key = "recent-gap") {
@@ -122,18 +129,21 @@ fun TerminalScreen(
             }
             if (filtered.isEmpty()) {
                 item(span = { GridItemSpan(3) }, key = "empty") {
-                    IpadCard {
-                        Text(
-                            text = "还没有服务器，去「更多 → 服务器」点击 + 添加",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(20.dp)
-                        )
-                    }
+                    EmptyState(
+                        icon = Icons.Filled.Terminal,
+                        title = "还没有服务器",
+                        subtitle = "添加服务器后，一点即连 SSH 终端",
+                        actionLabel = "添加服务器",
+                        onAction = onAddServer
+                    )
                 }
             } else {
-                items(filtered, key = { it.id }) { server ->
-                    ServerResourceCard(server = server, onClick = { onOpen(server.id) })
+                itemsIndexed(filtered, key = { _, s -> s.id }) { index, server ->
+                    ServerResourceCard(
+                        server = server,
+                        onClick = { onOpen(server.id) },
+                        modifier = Modifier.cardEntrance(recent.size + index)
+                    )
                 }
             }
         }

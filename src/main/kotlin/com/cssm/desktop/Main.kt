@@ -6,15 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,9 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.rememberWindowState
 import com.cssm.desktop.data.ServerStore
+import com.cssm.desktop.ui.components.CustomTitleBar
+import com.cssm.desktop.ui.components.WindowResizeHandles
 import com.cssm.desktop.ui.components.ipadBlue
 import com.cssm.desktop.ui.containers.ContainersScreen
 import com.cssm.desktop.ui.files.FilesScreen
@@ -144,16 +154,25 @@ fun main() = application {
     }
 
     CssmTheme(themeMode = themeMode) {
+        val windowState = rememberWindowState(width = 1100.dp, height = 720.dp)
         Window(
             onCloseRequest = ::exitApplication,
             title = "Cssm",
-            state = rememberWindowState(width = 1100.dp, height = 720.dp)
+            state = windowState,
+            undecorated = true,
+            icon = painterResource("icon.png")
         ) {
-            // Surface 提供默认内容色（LocalContentColor），深色下普通 Text 自动用浅色
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    CustomTitleBar(
+                        state = windowState,
+                        onCloseRequest = ::exitApplication
+                    )
+                    // Surface 提供默认内容色（LocalContentColor），深色下普通 Text 自动用浅色
+                    Surface(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
             val r = route
             if (r is Route.Session || r is Route.Edit || r is Route.Sftp ||
                 r is Route.Docker || r is Route.ServerManage || r is Route.Scripts ||
@@ -189,22 +208,26 @@ fun main() = application {
                             Route.Metrics -> MetricsScreen(
                                 store = store,
                                 repo = metricsRepo,
-                                onOpen = { id -> nav(Route.Edit(id), r) }
+                                onOpen = { id -> nav(Route.Edit(id), r) },
+                                onAddServer = { nav(Route.Edit(0), r) }
                             )
                             Route.Terminal -> TerminalScreen(
                                 store = store,
-                                onOpen = { id -> nav(Route.Session(id), r) }
+                                onOpen = { id -> nav(Route.Session(id), r) },
+                                onAddServer = { nav(Route.Edit(0), r) }
                             )
                             Route.Files -> FilesScreen(
                                 store = store,
                                 onOpenSftp = { id -> nav(Route.Sftp(id), r) },
-                                onOpenLocal = { nav(Route.LocalFiles, r) }
+                                onOpenLocal = { nav(Route.LocalFiles, r) },
+                                onAddServer = { nav(Route.Edit(0), r) }
                             )
                             Route.Containers -> ContainersScreen(
                                 store = store,
                                 onDocker = { id -> nav(Route.Docker(id), r) },
                                 onSession = { id -> nav(Route.Session(id), r) },
-                                onSftp = { id -> nav(Route.Sftp(id), r) }
+                                onSftp = { id -> nav(Route.Sftp(id), r) },
+                                onAddServer = { nav(Route.Edit(0), r) }
                             )
                             Route.More -> MoreScreen(
                                 onServers = { nav(Route.ServerManage, r) },
@@ -221,7 +244,12 @@ fun main() = application {
                 }
             }
             }
-        }
+                } // Column
+                    if (windowState.placement != WindowPlacement.Maximized) {
+                        WindowResizeHandles()
+                    }
+                } // Box
+            }
     }
 }
 
@@ -319,11 +347,11 @@ private fun TopNavBar(
     onOpenSettings: () -> Unit
 ) {
     val tabs = listOf(
-        "指标" to Route.Metrics,
-        "终端" to Route.Terminal,
-        "文件" to Route.Files,
-        "容器" to Route.Containers,
-        "设置" to Route.More
+        Triple("指标", Route.Metrics, Icons.Filled.Speed),
+        Triple("终端", Route.Terminal, Icons.Filled.Terminal),
+        Triple("文件", Route.Files, Icons.Filled.Folder),
+        Triple("容器", Route.Containers, Icons.Filled.Inventory2),
+        Triple("设置", Route.More, Icons.Filled.Settings)
     )
     val blue = ipadBlue()
     Row(
@@ -342,7 +370,7 @@ private fun TopNavBar(
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            tabs.forEach { (label, r) ->
+            tabs.forEach { (label, r, icon) ->
                 val isSelected = selected == r
                 Box(
                     modifier = Modifier
@@ -352,16 +380,26 @@ private fun TopNavBar(
                             else Color.Transparent
                         )
                         .clickable { onSelect(r) }
-                        .padding(horizontal = 22.dp, vertical = 7.dp),
+                        .padding(horizontal = 18.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = label,
-                        fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) blue
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (isSelected) blue
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = label,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) blue
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
