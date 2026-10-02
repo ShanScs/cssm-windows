@@ -18,12 +18,20 @@ import java.nio.file.StandardCopyOption
  */
 internal object JsonFileStore {
 
-    /** load 之前调用：用残留 tmp 恢复数据（一次性；无 tmp 或 tmp 更旧时直接返回） */
+    /** load 之前调用：用残留 tmp 恢复数据（一次性；无 tmp 或 tmp 更旧/损坏时直接返回） */
     fun migrateTmp(file: File, tmpName: String) {
         try {
             val dir = file.parentFile ?: return
             val tmp = File(dir, tmpName)
             if (!tmp.exists()) return
+            // tmp 须是完整 JSON（防崩溃写一半）：kotlinx prettyPrint 的列表/对象以 ]/} 结尾
+            val content = tmp.readText().trim()
+            val looksComplete = (content.startsWith("[") && content.endsWith("]")) ||
+                (content.startsWith("{") && content.endsWith("}"))
+            if (!looksComplete) {
+                tmp.delete()
+                return
+            }
             if (!file.exists() || tmp.lastModified() > file.lastModified()) {
                 dir.mkdirs()
                 Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
