@@ -49,6 +49,8 @@ import androidx.compose.ui.window.rememberWindowState
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.AppIconPainter
 import com.cssm.desktop.ui.components.CustomTitleBar
+import com.cssm.desktop.ui.components.RoundedWindowCorners
+import com.cssm.desktop.ui.components.WindowDisappearDiagnose
 import com.cssm.desktop.ui.components.WindowResizeHandles
 import com.cssm.desktop.ui.components.ipadBlue
 import com.cssm.desktop.ui.containers.ContainersScreen
@@ -162,6 +164,8 @@ fun main() = application {
             undecorated = true,
             icon = remember { AppIconPainter() }
         ) {
+            RoundedWindowCorners(windowState)
+            WindowDisappearDiagnose(windowState)
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     CustomTitleBar(

@@ -2,8 +2,12 @@ package com.cssm.desktop.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -80,15 +84,29 @@ fun WindowScope.CustomTitleBar(
                     }
                     .pointerInput(window, maximized) {
                         if (maximized) return@pointerInput
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val loc = window.locationOnScreen
-                            val (nx, ny) = clampPosition(
-                                window,
-                                (loc.x + dragAmount.x).roundToInt(),
-                                (loc.y + dragAmount.y).roundToInt()
-                            )
-                            window.setLocation(nx, ny)
+                        awaitEachGesture {
+                            // requireUnconsumed = false：即使按下瞬间先被按钮消费，
+                            // 拖拽手势依然能接管（避免按钮和拖拽抢按下事件导致窗口"消失"）
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val slopReached = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                                change.consume()
+                            } ?: return@awaitEachGesture
+                            var prev = slopReached.position
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) break
+                                val delta = change.position - prev
+                                prev = change.position
+                                change.consume()
+                                val loc = window.locationOnScreen
+                                val (nx, ny) = clampPosition(
+                                    window,
+                                    (loc.x + delta.x).roundToInt(),
+                                    (loc.y + delta.y).roundToInt()
+                                )
+                                window.setLocation(nx, ny)
+                            }
                         }
                     }
             )
@@ -176,7 +194,17 @@ private fun WinButton(
             .background(if (hovered) hoverBg else Color.Transparent)
             .hoverable(interaction)
             .pointerInput(onClick) {
-                detectTapGestures(onTap = { onClick() })
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val up = waitForUpOrCancellation()
+                    // 只有"干净"的点按才触发：按住按钮拖拽窗口时不误触
+                    // （位移超过 touchSlop 说明用户在拖拽，直接吞掉这次点击）
+                    if (up != null &&
+                        (up.position - down.position).getDistance() <= viewConfiguration.touchSlop
+                    ) {
+                        onClick()
+                    }
+                }
             },
         contentAlignment = Alignment.Center
     ) {
