@@ -23,13 +23,13 @@ class AppIconPainter : Painter() {
             color = Color(0xFF0B0E14),
             cornerRadius = CornerRadius(112f * size.width / 512f, 112f * size.width / 512f)
         )
-        val strokeW = 9f * k
+        val strokeW = 10f * k
         val chev = Color(0xFF7DD3FC)
         val under = Color(0xFF6EE7B7)
-        // chevron: M32,40 L52,54 L32,68
-        drawLine(chev, Offset(32 * k, 40 * k), Offset(52 * k, 54 * k), strokeW, StrokeCap.Round)
-        drawLine(chev, Offset(52 * k, 54 * k), Offset(32 * k, 68 * k), strokeW, StrokeCap.Round)
-        // underscore: M60,72 L82,72
-        drawLine(under, Offset(60 * k, 72 * k), Offset(82 * k, 72 * k), strokeW, StrokeCap.Round)
+        // chevron 放大到接近边框：M22,30 L52,54 L22,78
+        drawLine(chev, Offset(22 * k, 30 * k), Offset(52 * k, 54 * k), strokeW, StrokeCap.Round)
+        drawLine(chev, Offset(52 * k, 54 * k), Offset(22 * k, 78 * k), strokeW, StrokeCap.Round)
+        // underscore 放大：M60,80 L92,80
+        drawLine(under, Offset(60 * k, 80 * k), Offset(92 * k, 80 * k), strokeW, StrokeCap.Round)
     }
 }
