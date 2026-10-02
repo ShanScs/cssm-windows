@@ -31,8 +31,9 @@ val CARRIERS = listOf(
 
 data class PingState(
     val latencies: Map<String, Int?> = emptyMap(), // 运营商名 -> 延迟毫秒（null=超时）
-    val lossPct: Double = 0.0,                    // 最近 60 次尝试的丢包率
+    val lossPct: Double = 0.0,                    // 仅统计可达运营商的最近尝试丢包率
     val bars: List<Float?> = emptyList(),          // 最近 18 轮平均延迟（null=整轮失败）
+    val unreachable: Set<String> = emptySet(),     // 最近多次全部失败的运营商（视为不可达，不计入丢包）
 )
 
 object CarrierPing {
@@ -46,7 +47,7 @@ object CarrierPing {
     val state: StateFlow<PingState> = _state.asStateFlow()
 
     private var job: Job? = null
-    private val attempts = ArrayDeque<Boolean>() // true=成功
+    private val attempts = ArrayDeque<Pair<String, Boolean>>() // (运营商, 成功?)，最多 60 条
     private val bars = ArrayDeque<Float?>()
 
     fun start(scope: CoroutineScope) {
@@ -70,20 +71,34 @@ object CarrierPing {
         }.awaitAll().toMap()
 
         synchronized(this@CarrierPing) {
-            results.values.forEach { ms ->
-                attempts.addLast(ms != null)
+            results.forEach { (name, ms) ->
+                attempts.addLast(name to (ms != null))
                 if (attempts.size > MAX_ATTEMPTS) attempts.removeFirst()
             }
+            val unreach = unreachableNames()
+            // 丢包率只统计可达运营商：整个运营商不通不算丢包
+            val valid = attempts.filter { it.first !in unreach }
+            val failed = valid.count { !it.second }
             val ok = results.values.filterNotNull()
             bars.addLast(if (ok.isEmpty()) null else ok.average().toFloat())
             if (bars.size > MAX_BARS) bars.removeFirst()
-            val failed = attempts.count { !it }
             _state.value = PingState(
                 latencies = results,
-                lossPct = if (attempts.isEmpty()) 0.0 else failed * 100.0 / attempts.size,
-                bars = bars.toList()
+                lossPct = if (valid.isEmpty()) 0.0 else failed * 100.0 / valid.size,
+                bars = bars.toList(),
+                unreachable = unreach
             )
         }
+    }
+
+    /** 最近 5 次尝试（至少 3 次记录）全部失败的运营商视为不可达 */
+    private fun unreachableNames(): Set<String> {
+        val out = mutableSetOf<String>()
+        for (c in CARRIERS) {
+            val recent = attempts.filter { it.first == c.name }.takeLast(5)
+            if (recent.size >= 3 && recent.all { !it.second }) out.add(c.name)
+        }
+        return out
     }
 
     private fun tcpPing(host: String, port: Int, timeoutMs: Int): Int? {

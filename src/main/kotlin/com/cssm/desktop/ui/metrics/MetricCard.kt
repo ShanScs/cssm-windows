@@ -99,7 +99,7 @@ fun ServerMetricCard(
                     Icon(
                         imageVector = Icons.Filled.Refresh,
                         contentDescription = "刷新延迟",
-                        tint = NeoOrange,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(19.dp)
                     )
                 }
@@ -157,16 +157,18 @@ fun ServerMetricCard(
                     modifier = Modifier.weight(1f)
                 )
                 val quotaBytes = server.trafficQuotaGb * 1024L * 1024L * 1024L
-                val txPct = if (hasData && quotaBytes > 0)
+                val hasQuota = quotaBytes > 0
+                val txPct = if (hasData && hasQuota)
                     (stats!!.txTotalBytes * 100.0 / quotaBytes).coerceIn(0.0, 100.0) else 0.0
                 MetricBar(
                     label = "流量",
-                    pctText = if (hasData && quotaBytes > 0) "%.1f%%".format(txPct) else "—",
+                    pctText = if (hasData && hasQuota) "%.1f%%".format(txPct) else "",
                     pct = txPct,
                     pctColor = NeoGreen,
+                    showBar = hasQuota,
                     sub = if (hasData) {
                         val used = formatBigBytes(stats!!.txTotalBytes)
-                        if (quotaBytes > 0) "$used / ${formatGb(server.trafficQuotaGb)}" else used
+                        if (hasQuota) "$used / ${formatGb(server.trafficQuotaGb)}" else used
                     } else "—",
                     modifier = Modifier.weight(1f)
                 )
@@ -192,29 +194,32 @@ fun ServerMetricCard(
                     Spacer(Modifier.height(6.dp))
                     MiniLine(text = "↓ ${if (hasData) formatBigBytes(stats!!.rxTotalBytes) else "—"}", color = gray)
                 }
-                IpadSubPanel(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
-                ) {
-                    val days = remainingDays(server.expireAt)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DateRange, null, tint = gray, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = if (server.expireAt > 0) {
-                                if (days >= 0) "剩余 $days 天" else "已到期"
-                            } else "—",
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurface, maxLines = 1
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.AttachMoney, null, tint = gray, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = server.renewPrice.ifBlank { "—" },
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurface, maxLines = 1
-                        )
+                // 计费信息：没填到期/续费价就不显示，避免一排"—"
+                if (server.expireAt > 0 || server.renewPrice.isNotBlank()) {
+                    IpadSubPanel(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
+                    ) {
+                        val days = remainingDays(server.expireAt)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.DateRange, null, tint = gray, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = if (server.expireAt > 0) {
+                                    if (days >= 0) "剩余 $days 天" else "已到期"
+                                } else "—",
+                                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurface, maxLines = 1
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.AttachMoney, null, tint = gray, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = server.renewPrice.ifBlank { "—" },
+                                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurface, maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -232,10 +237,17 @@ fun ServerMetricCard(
                         if (i > 0) Spacer(Modifier.width(14.dp))
                         Text(text = c.name, fontSize = 12.sp, color = gray)
                         Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = ping.latencies[c.name]?.toString() ?: "—",
-                            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.color
-                        )
+                        if (c.name in ping.unreachable) {
+                            Text(
+                                text = "不可达",
+                                fontSize = 12.sp, color = gray
+                            )
+                        } else {
+                            Text(
+                                text = ping.latencies[c.name]?.toString() ?: "—",
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.color
+                            )
+                        }
                     }
                 }
             }
@@ -267,11 +279,19 @@ fun ServerMetricCard(
                     modifier = Modifier.weight(1f),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
                 ) {
+                    // 丢包率按阈值变色：<1% 绿，<5% 橙，≥5% 红；三网全不可达则不显示
+                    val allUnreachable = ping.unreachable.size >= CARRIERS.size
+                    val lossColor = when {
+                        allUnreachable -> onSurface
+                        ping.lossPct < 1.0 -> NeoGreen
+                        ping.lossPct < 5.0 -> NeoOrange
+                        else -> NeoRed
+                    }
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(text = "丢包", fontSize = 12.sp, color = gray, modifier = Modifier.weight(1f))
                         Text(
-                            text = "%.1f%%".format(ping.lossPct),
-                            fontSize = 17.sp, fontWeight = FontWeight.Bold, color = onSurface
+                            text = if (allUnreachable) "—" else "%.1f%%".format(ping.lossPct),
+                            fontSize = 17.sp, fontWeight = FontWeight.Bold, color = lossColor
                         )
                     }
                     Spacer(Modifier.height(4.dp))
@@ -319,7 +339,7 @@ private fun NeoPill(text: String) {
     }
 }
 
-/** 百分比行：label 左灰字 / 百分比右白字 + 进度条 + 明细灰字 */
+/** 百分比行：label 左灰字 / 百分比右白字 + 进度条 + 明细灰字；无配额时不显示百分比和进度条 */
 @Composable
 private fun RowScope.MetricBar(
     label: String,
@@ -327,7 +347,8 @@ private fun RowScope.MetricBar(
     pct: Double,
     sub: String,
     modifier: Modifier = Modifier,
-    pctColor: Color = MaterialTheme.colorScheme.onSurface
+    pctColor: Color = MaterialTheme.colorScheme.onSurface,
+    showBar: Boolean = true
 ) {
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
@@ -337,28 +358,34 @@ private fun RowScope.MetricBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
-            Text(
-                text = pctText,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = pctColor
-            )
+            if (showBar) {
+                Text(
+                    text = pctText,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = pctColor
+                )
+            }
         }
-        Spacer(Modifier.height(5.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth().height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f))
-        ) {
+        if (showBar) {
+            Spacer(Modifier.height(5.dp))
             Box(
-                modifier = Modifier
-                    .fillMaxWidth((pct / 100.0).toFloat().coerceIn(0f, 1f))
-                    .height(4.dp)
+                modifier = Modifier.fillMaxWidth().height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(NeoGreen)
-            )
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth((pct / 100.0).toFloat().coerceIn(0f, 1f))
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(NeoGreen)
+                )
+            }
+            Spacer(Modifier.height(5.dp))
+        } else {
+            Spacer(Modifier.height(5.dp))
         }
-        Spacer(Modifier.height(5.dp))
         Text(
             text = sub,
             fontSize = 11.sp,
