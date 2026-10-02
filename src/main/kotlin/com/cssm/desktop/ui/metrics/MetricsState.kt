@@ -89,49 +89,59 @@ class MetricsRepository(
     }
 }
 
+/** 连续采样失败多少次才判定断线并重连：偶发抖动不闪断 UI */
+private const val MAX_CONSECUTIVE_FAILURES = 5
+
 /**
- * 单台服务器的采集循环：保持 SSH 长连接，每 1 秒采样。
- * 断线后等待 5 秒重连。由 App 级作用域驱动，App 关闭前一直运行。
+ * 单台服务器的采集循环：App 存活期间保持一条 SSH 长连接，每 1 秒采样。
+ * 采样偶发失败不判离线（保留上次数据显示），连续失败 [MAX_CONSECUTIVE_FAILURES]
+ * 次才标记离线并在后台重连；每次重连都取服务器最新信息（改密码后自动恢复，
+ * 服务器被删则退出）。由 App 级作用域驱动，App 关闭前一直运行。
  */
 internal suspend fun collectLoop(
     server: Server,
-    repo: MetricsRepository
+    repo: MetricsRepository,
+    serverProvider: () -> Server? = { server },
 ) {
     val conn = SshConnection()
     val collector = StatsCollector()
+    var fails = 0
     while (true) {
+        // 每次(重)连都取最新信息；服务器已被删除则结束
+        val srv = serverProvider() ?: break
         try {
             withContext(Dispatchers.IO) {
-                conn.connect(server, 80, 24)
+                conn.connect(srv, 80, 24)
             }
             // 连接成功，进入采样循环
             while (true) {
-                try {
-                    val stats = withContext(Dispatchers.IO) {
+                val stats = try {
+                    withContext(Dispatchers.IO) {
                         collector.collect(conn)
                     }
-                    if (stats != null) {
-                        val cur = repo.states.value[server.id]
-                            ?: ServerMetrics(server.id)
-                        repo.update(server.id, cur.withNewSample(stats))
+                } catch (_: Exception) {
+                    null
+                }
+                if (stats != null) {
+                    fails = 0
+                    val cur = repo.states.value[srv.id]
+                        ?: ServerMetrics(srv.id)
+                    repo.update(srv.id, cur.withNewSample(stats))
+                } else {
+                    fails++
+                    if (fails >= MAX_CONSECUTIVE_FAILURES) {
+                        repo.markOffline(srv.id, "连接中断，正在重连")
+                        break
                     }
-                } catch (e: Exception) {
-                    // 单次采样失败，标记离线并重连
-                    repo.markOffline(server.id, e.message)
-                    break
+                    // 偶发失败：保留上次数据继续显示，不闪断
                 }
                 delay(1000)
             }
         } catch (e: Exception) {
-            // 连接失败
-            if (repo.states.value[server.id]?.stats == null) {
-                repo.markOffline(server.id, e.message)
-            } else {
-                // 有历史数据时保持显示，仅标记离线
-                val cur = repo.states.value[server.id]
-                if (cur?.online != false) {
-                    repo.update(server.id, cur!!.copy(online = false, lastError = e.message))
-                }
+            // 连接失败（含鉴权失败）：计入失败，退避后用最新信息重试
+            fails++
+            if (fails >= MAX_CONSECUTIVE_FAILURES) {
+                repo.markOffline(srv.id, e.message)
             }
         }
         try {

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,8 +46,31 @@ private val cardPalettes = listOf(
     Color(0xFFFFF3D9) to Color(0xFFFFFBEE),
 )
 
-fun Server.cardPalette(): Pair<Color, Color> =
-    cardPalettes[(id.hashCode().absoluteValue) % cardPalettes.size]
+/** 深色版色板：保留同色系的色相，加深为暗面底 */
+private val cardPalettesDark = listOf(
+    Color(0xFF16281E) to Color(0xFF122016),
+    Color(0xFF2E1B1A) to Color(0xFF251715),
+    Color(0xFF271E33) to Color(0xFF201827),
+    Color(0xFF1A2431) to Color(0xFF141D28),
+    Color(0xFF2F2812) to Color(0xFF26200F),
+)
+
+/** 文件夹卡浅色渐变 */
+private val folderGradientLight = listOf(Color(0xFFFFF6DC), Color(0xFFFFFDF4))
+
+/** 文件夹卡深色渐变 */
+private val folderGradientDark = listOf(Color(0xFF2F2812), Color(0xFF26200F))
+
+/** 当前是否为深色主题（按背景亮度判断，跟随系统的三档外观都适用） */
+@Composable
+private fun isDarkTheme(): Boolean =
+    MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+@Composable
+fun Server.cardPalette(): Pair<Color, Color> {
+    val palettes = if (isDarkTheme()) cardPalettesDark else cardPalettes
+    return palettes[(id.hashCode().absoluteValue) % palettes.size]
+}
 
 /** 两种卡片统一高度：名称顶对齐，底部信息沉底 */
 private val cardHeight = 112.dp
@@ -71,6 +95,7 @@ fun ServerResourceCard(
 ) {
     val (c1, c2) = server.cardPalette()
     val gray = MaterialTheme.colorScheme.onSurfaceVariant
+    val titleColor = MaterialTheme.colorScheme.onSurface
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -85,7 +110,7 @@ fun ServerResourceCard(
                     server = server,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1C1C1E),
+                    color = titleColor,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 Spacer(Modifier.width(5.dp))
@@ -139,13 +164,13 @@ fun FolderResourceCard(
     modifier: Modifier = Modifier,
 ) {
     val gray = MaterialTheme.colorScheme.onSurfaceVariant
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val gradient = if (isDarkTheme()) folderGradientDark else folderGradientLight
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(
-                Brush.horizontalGradient(
-                    listOf(Color(0xFFFFF6DC), Color(0xFFFFFDF4))
-                )
+                Brush.horizontalGradient(gradient)
             )
             .clickable(onClick = onClick)
             .height(cardHeight)
@@ -157,7 +182,7 @@ fun FolderResourceCard(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1C1C1E),
+                    color = titleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)

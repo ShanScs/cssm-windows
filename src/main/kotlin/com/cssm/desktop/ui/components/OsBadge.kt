@@ -3,11 +3,14 @@ package com.cssm.desktop.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -16,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -36,11 +40,30 @@ fun OsBadge(
 ) {
     val logo = remember(osId) { osLogoBitmap(osId) }
     if (logo != null) {
-        Image(
-            bitmap = logo,
-            contentDescription = null,
-            modifier = modifier.size(size)
-        )
+        // 深色主题：部分官方 logo 含深色字（如 debian），垫白色圆形底保证可读
+        val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+        if (dark) {
+            Box(
+                modifier = modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .padding(size * 0.14f),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap = logo,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {
+            Image(
+                bitmap = logo,
+                contentDescription = null,
+                modifier = modifier.size(size)
+            )
+        }
         return
     }
     val (bg, letter) = osStyle(osId)

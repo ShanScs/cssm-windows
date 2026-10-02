@@ -115,7 +115,10 @@ fun main() = application {
         for (server in servers) {
             if (!collectJobs.containsKey(server.id)) {
                 collectJobs[server.id] = appScope.launch(Dispatchers.IO) {
-                    collectLoop(server, metricsRepo)
+                    // 重连时取服务器最新信息（改密码/改主机后自动用新配置恢复）
+                    collectLoop(server, metricsRepo) {
+                        store.servers.value.firstOrNull { it.id == server.id }
+                    }
                 }
             }
         }
