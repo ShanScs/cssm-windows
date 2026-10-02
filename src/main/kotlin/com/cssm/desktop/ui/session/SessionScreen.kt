@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import com.cssm.desktop.data.Server
 import com.cssm.desktop.data.ServerStore
@@ -68,6 +69,8 @@ fun SessionScreen(
     var fontSize by remember { mutableStateOf(CssmTermSettings.loadFontSize()) }
     var widget by remember { mutableStateOf<JediTermWidget?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
+    // 深色模式跟随 App 主题（按背景亮度判断）
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     // SSH 连接生命周期：server 切换或手动重连时重建
     LaunchedEffect(server.id, attempt) {
@@ -101,12 +104,12 @@ fun SessionScreen(
         connState = if (err == null) ConnState.Connected else ConnState.Failed(err)
     }
 
-    // 终端组件生命周期：连接成功后创建；字号变化时重建（SSH 不动）
-    LaunchedEffect(connState, fontSize) {
+    // 终端组件生命周期：连接成功后创建；字号/深浅色变化时重建（SSH 不动）
+    LaunchedEffect(connState, fontSize, dark) {
         if (connState != ConnState.Connected) return@LaunchedEffect
         val w = withContext(Dispatchers.Swing) {
             try { widget?.stop() } catch (_: Exception) {}
-            JediTermWidget(80, 24, CssmTermSettings(fontSize)).also {
+            JediTermWidget(80, 24, CssmTermSettings(fontSize, dark)).also {
                 it.setTtyConnector(SshTtyConnector(ssh))
                 it.start()
             }

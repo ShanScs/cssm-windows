@@ -86,26 +86,34 @@ fun WindowScope.CustomTitleBar(
                         if (maximized) return@pointerInput
                         awaitEachGesture {
                             // requireUnconsumed = false：即使按下瞬间先被按钮消费，
-                            // 拖拽手势依然能接管（避免按钮和拖拽抢按下事件导致窗口"消失"）
+                            // 拖拽手势依然能接管
                             val down = awaitFirstDown(requireUnconsumed = false)
-                            val slopReached = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                            awaitTouchSlopOrCancellation(down.id) { change, _ ->
                                 change.consume()
                             } ?: return@awaitEachGesture
-                            var prev = slopReached.position
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) break
-                                val delta = change.position - prev
-                                prev = change.position
-                                change.consume()
-                                val loc = window.locationOnScreen
-                                val (nx, ny) = clampPosition(
-                                    window,
-                                    (loc.x + delta.x).roundToInt(),
-                                    (loc.y + delta.y).roundToInt()
-                                )
-                                window.setLocation(nx, ny)
+                            // 拖拽已确认：优先走 Windows 原生标题栏拖拽
+                            // （系统处理 Snap/多屏/DPI，比自己 setLocation 可靠）
+                            startNativeCaptionDrag(window)
+                            if (!System.getProperty("os.name", "")
+                                    .startsWith("Windows", ignoreCase = true)
+                            ) {
+                                // 非 Windows 回退：setLocation 跟随
+                                var prev = down.position
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!change.pressed) break
+                                    val delta = change.position - prev
+                                    prev = change.position
+                                    change.consume()
+                                    val loc = window.locationOnScreen
+                                    val (nx, ny) = clampPosition(
+                                        window,
+                                        (loc.x + delta.x).roundToInt(),
+                                        (loc.y + delta.y).roundToInt()
+                                    )
+                                    window.setLocation(nx, ny)
+                                }
                             }
                         }
                     }

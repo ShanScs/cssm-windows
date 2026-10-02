@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,6 @@ import androidx.compose.ui.window.rememberWindowState
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.AppIconPainter
 import com.cssm.desktop.ui.components.CustomTitleBar
-import com.cssm.desktop.ui.components.RoundedWindowCorners
 import com.cssm.desktop.ui.components.WindowDisappearDiagnose
 import com.cssm.desktop.ui.components.WindowResizeHandles
 import com.cssm.desktop.ui.components.ipadBlue
@@ -162,11 +162,22 @@ fun main() = application {
             title = "Cssm",
             state = windowState,
             undecorated = true,
+            transparent = true,
             icon = remember { AppIconPainter() }
         ) {
-            RoundedWindowCorners(windowState)
             WindowDisappearDiagnose(windowState)
+            val maximized = windowState.placement == WindowPlacement.Maximized
+            val corner = if (maximized) 0.dp else 8.dp
+            // 透明窗口 + Compose 抗锯齿圆角背景（替代 AWT shape 硬裁剪，避免圆角毛边）；
+            // 阴影自己画（透明窗口没有系统阴影），最大化时直角无阴影
             Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .padding(if (maximized) 0.dp else 10.dp)
+                        .shadow(if (maximized) 0.dp else 14.dp, RoundedCornerShape(corner))
+                        .clip(RoundedCornerShape(corner))
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     CustomTitleBar(
                         state = windowState,
@@ -249,10 +260,11 @@ fun main() = application {
             }
             }
                 } // Column
-                    if (windowState.placement != WindowPlacement.Maximized) {
+                    } // 圆角内容 Box
+                    if (!maximized) {
                         WindowResizeHandles()
                     }
-                } // Box
+                } // 透明根 Box
             }
     }
 }
