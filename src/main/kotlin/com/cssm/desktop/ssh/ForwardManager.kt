@@ -59,9 +59,10 @@ class ForwardManager {
                     c.connectTimeout = 15_000
                     c.connect(server.host, server.port)
                     if (server.authType == Server.AUTH_KEY && server.privateKey.isNotBlank()) {
-                        val kp: KeyProvider = c.loadKeys(
+                        // 口令为空时传空字符串，避免 sshj 内部对 null 调 toCharArray() 空指针
+                val kp: KeyProvider = c.loadKeys(
                             server.privateKey,
-                            server.keyPassphrase.ifEmpty { null }
+                            server.keyPassphrase.ifBlank { "" }
                         )
                         c.authPublickey(server.username, kp)
                     } else {
