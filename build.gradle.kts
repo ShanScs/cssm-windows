@@ -35,6 +35,7 @@ dependencies {
     // SSH
     implementation("com.hierynomus:sshj:0.38.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.77")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.77")
     // 终端模拟器（Swing，嵌进 Compose）
     implementation("org.jetbrains.jediterm:jediterm-core:3.64")
     implementation("org.jetbrains.jediterm:jediterm-ui:3.64")
