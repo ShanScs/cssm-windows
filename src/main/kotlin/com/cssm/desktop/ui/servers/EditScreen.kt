@@ -29,6 +29,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.window.Dialog
+import java.awt.FileDialog
+import java.awt.Frame
 import com.cssm.desktop.ui.components.FlagImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -181,15 +183,35 @@ fun EditScreen(
                 Field("私钥（PEM）", privateKey, { privateKey = it },
                     singleLine = false, minLines = 4, placeholder = "-----BEGIN ...",
                     labelTrailing = {
-                        Box {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
-                                onClick = { keyMenu = true },
-                                enabled = savedKeys.isNotEmpty(),
+                                onClick = {
+                                    // 用 AWT 文件选择框选私钥文件
+                                    val dialog = FileDialog(null as Frame?, "选择私钥文件", FileDialog.LOAD)
+                                    dialog.isVisible = true
+                                    val dir = dialog.directory
+                                    val file = dialog.file
+                                    if (dir != null && file != null) {
+                                        try {
+                                            privateKey = java.io.File(dir, file).readText()
+                                        } catch (_: Exception) {}
+                                    }
+                                    dialog.dispose()
+                                },
                                 modifier = Modifier.height(36.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                             ) {
-                                Text("从密钥库选择", fontSize = 12.sp)
+                                Text("从文件选择", fontSize = 12.sp)
                             }
+                            Box {
+                                OutlinedButton(
+                                    onClick = { keyMenu = true },
+                                    enabled = savedKeys.isNotEmpty(),
+                                    modifier = Modifier.height(36.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                ) {
+                                    Text("从密钥库选择", fontSize = 12.sp)
+                                }
                             DropdownMenu(expanded = keyMenu, onDismissRequest = { keyMenu = false }) {
                                 savedKeys.forEach { k ->
                                     DropdownMenuItem(
@@ -201,6 +223,7 @@ fun EditScreen(
                                         }
                                     )
                                 }
+                            }
                             }
                         }
                     })
