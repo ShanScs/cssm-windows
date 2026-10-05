@@ -116,7 +116,6 @@ class SshConnection {
             try { tmp.delete() } catch (_: Exception) {}
         }
     }
-    }
     companion object {
         @Volatile
         private var bcInstalled = false

@@ -51,5 +51,4 @@ object SshExec {
             try { tmp.delete() } catch (_: Exception) {}
         }
     }
-    }
 }

@@ -120,5 +120,4 @@ class ForwardManager {
             try { tmp.delete() } catch (_: Exception) {}
         }
     }
-    }
 }
