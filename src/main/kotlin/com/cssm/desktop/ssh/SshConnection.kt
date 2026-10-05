@@ -107,16 +107,13 @@ class SshConnection {
             c.connect(server.host, server.port)
             if (server.authType == Server.AUTH_KEY && server.privateKey.isNotBlank()) {
                 // sshj 的 loadKeys 只认文件路径，密钥内容先写临时文件
-                val kp: KeyProvider = run {
-                    val tmp = java.io.File.createTempFile("cssm_key_", ".pem")
-                    try {
-                        tmp.writeText(convertPkcs1ToPkcs8(server.privateKey.trim()).replace("\r\n", "\n").replace("\r", "\n"))
-                        c.loadKeys(tmp.absolutePath, server.keyPassphrase.ifBlank { "" })
-                    } finally {
-                        try { tmp.delete() } catch (_: Exception) {}
-                    }
-                }
+                // 注意：不能立即删除，sshj 是懒加载，认证时才读文件
+                val tmpKeyFile = java.io.File.createTempFile("cssm_key_", ".pem")
+                tmpKeyFile.deleteOnExit()
+                tmpKeyFile.writeText(convertPkcs1ToPkcs8(server.privateKey.trim()).replace("\r\n", "\n").replace("\r", "\n"))
+                val kp: KeyProvider = c.loadKeys(tmpKeyFile.absolutePath, server.keyPassphrase.ifBlank { "" })
                 c.authPublickey(server.username, kp)
+                try { tmpKeyFile.delete() } catch (_: Exception) {}
             } else {
                 c.authPassword(server.username, server.password)
             }
