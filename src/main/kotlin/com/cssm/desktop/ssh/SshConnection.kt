@@ -74,7 +74,7 @@ class SshConnection {
                 val kp: KeyProvider = run {
                     val tmp = java.io.File.createTempFile("cssm_key_", ".pem")
                     try {
-                        tmp.writeText(convertPkcs1ToPkcs8(server.privateKey.trim()))
+                        tmp.writeText(convertPkcs1ToPkcs8(server.privateKey.trim()).replace("\r\n", "\n").replace("\r", "\n"))
                         c.loadKeys(tmp.absolutePath, server.keyPassphrase.ifBlank { "" })
                     } finally {
                         try { tmp.delete() } catch (_: Exception) {}
