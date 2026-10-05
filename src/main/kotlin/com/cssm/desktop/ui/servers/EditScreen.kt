@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -22,8 +24,11 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.window.Dialog
 import com.cssm.desktop.ui.components.FlagImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -106,31 +111,48 @@ fun EditScreen(
     }
 
     if (!loaded) {
-        Column(
-            Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) { CircularProgressIndicator() }
+        Dialog(onDismissRequest = onCancel) {
+            Card(
+                modifier = Modifier.widthIn(max = 560.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) { CircularProgressIndicator() }
+            }
+        }
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp, 16.dp, 20.dp, 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                if (id == 0L) "添加服务器" else "编辑服务器",
-                style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold
+    Dialog(onDismissRequest = onCancel) {
+        Card(
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxHeight(0.9f),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
-            TextButton(onClick = onCancel) { Text("取消") }
-        }
-
-        Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(20.dp, 8.dp, 20.dp, 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp, 16.dp, 20.dp, 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        if (id == 0L) "添加服务器" else "编辑服务器",
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = onCancel) { Text("取消") }
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                        .padding(20.dp, 8.dp, 20.dp, 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
             Field("名称", name, { name = it }, placeholder = "我的服务器")
             Field("主机", host, { host = it }, placeholder = "192.168.1.10 或 example.com")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -322,6 +344,8 @@ fun EditScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) { Text("删除服务器") }
+            }
+                }
             }
         }
     }
