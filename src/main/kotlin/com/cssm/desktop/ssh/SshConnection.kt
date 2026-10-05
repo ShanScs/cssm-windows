@@ -6,12 +6,9 @@ import net.schmizz.sshj.connection.channel.direct.PTYMode
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider
-import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile
-import net.schmizz.sshj.userauth.keyprovider.PKCS8KeyFile
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.InputStream
 import java.io.OutputStream
-import java.io.StringReader
 import java.security.Security
 import java.util.concurrent.TimeUnit
 
@@ -46,8 +43,8 @@ class SshConnection {
             c.connectTimeout = 15_000
             c.connect(server.host, server.port)
             if (server.authType == Server.AUTH_KEY && server.privateKey.isNotBlank()) {
-                // 从字符串内容加载密钥（loadKeys 只认文件路径）
-                val kp: KeyProvider = loadKeyFromString(c, server.privateKey, server.keyPassphrase)
+                // 密钥内容写临时文件再加载（sshj 的 loadKeys 只认文件路径）
+                val kp: KeyProvider = c.loadKeyFromString(server.privateKey, server.keyPassphrase)
                 c.authPublickey(server.username, kp)
             } else {
                 c.authPassword(server.username, server.password)
@@ -108,17 +105,17 @@ class SshConnection {
     }
 
 
-    /** 从 PEM 字符串加载密钥，兼容 OpenSSH / PKCS#1 / PKCS#8 格式。 */
-    private fun loadKeyFromString(c: SSHClient, pem: String, passphrase: String): KeyProvider {
-        val pw = passphrase.toCharArray()
-        val trimmed = pem.trim()
-        // 先试 OpenSSH 格式（含 BEGIN OPENSSH PRIVATE KEY 和传统 RSA/DSA/EC 格式）
-        return try {
-            OpenSSHKeyFile().apply { init(StringReader(trimmed), pw) }
-        } catch (_: Exception) {
-            // 再试 PKCS#8
-            PKCS8KeyFile().apply { init(StringReader(trimmed), pw) }
+    /** 密钥内容写临时文件后用 sshj 加载，用完即删。 */
+    private fun SSHClient.loadKeyFromString(pem: String, passphrase: String): KeyProvider {
+        val tmp = java.io.File.createTempFile("cssm_key_", ".pem")
+        try {
+            tmp.writeText(pem.trim())
+            // sshj 的 loadKeys 只接受文件路径
+            return loadKeys(tmp.absolutePath, passphrase.ifBlank { "" })
+        } finally {
+            try { tmp.delete() } catch (_: Exception) {}
         }
+    }
     }
     companion object {
         @Volatile
