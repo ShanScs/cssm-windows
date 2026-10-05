@@ -5,6 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider
+import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile
+import net.schmizz.sshj.userauth.keyprovider.PKCS8KeyFile
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import java.util.concurrent.TimeUnit
 
@@ -22,11 +24,8 @@ object SshExec {
                 c.connectTimeout = 15_000
                 c.connect(server.host, server.port)
                 if (server.authType == Server.AUTH_KEY && server.privateKey.isNotBlank()) {
-                    // 口令为空时传空字符串，避免 sshj 内部对 null 调 toCharArray() 空指针
-                val kp: KeyProvider = c.loadKeys(
-                        server.privateKey,
-                        server.keyPassphrase.ifBlank { "" }
-                    )
+                    // 从字符串内容加载密钥（loadKeys 只认文件路径）
+                    val kp: KeyProvider = loadKeyFromString(c, server.privateKey, server.keyPassphrase)
                     c.authPublickey(server.username, kp)
                 } else {
                     c.authPassword(server.username, server.password)
@@ -42,4 +41,15 @@ object SshExec {
                 try { c.disconnect() } catch (_: Exception) { }
             }
         }
+
+    /** 从 PEM 字符串加载密钥，兼容 OpenSSH / PKCS#1 / PKCS#8 格式。 */
+    private fun loadKeyFromString(c: SSHClient, pem: String, passphrase: String): KeyProvider {
+        val pw = passphrase.toCharArray()
+        val trimmed = pem.trim()
+        return try {
+            OpenSSHKeyFile().apply { init(StringReader(trimmed), pw) }
+        } catch (_: Exception) {
+            PKCS8KeyFile().apply { init(StringReader(trimmed), pw) }
+        }
+    }
 }
