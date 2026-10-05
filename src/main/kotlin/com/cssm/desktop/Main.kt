@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +25,10 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -186,7 +190,7 @@ fun main() = application {
                         color = MaterialTheme.colorScheme.background
                     ) {
             val r = route
-            if (r is Route.Session || r is Route.Edit || r is Route.Sftp ||
+            if (r is Route.Session || r is Route.Sftp ||
                 r is Route.Docker || r is Route.ServerManage || r is Route.Scripts ||
                 r is Route.Keys || r is Route.AiChat || r is Route.Forward ||
                 r is Route.Notify || r is Route.Search || r is Route.LocalFiles
@@ -216,7 +220,9 @@ fun main() = application {
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Box(Modifier.weight(1f)) {
-                        when (r) {
+                        // Route.Edit 时背景显示返回目标的 tab 内容
+                        val tabR = if (r is Route.Edit) returnRoute else r
+                        when (tabR) {
                             Route.Metrics -> MetricsScreen(
                                 store = store,
                                 repo = metricsRepo,
@@ -251,6 +257,14 @@ fun main() = application {
                                 onSearch = { nav(Route.Search, r) }
                             )
                             else -> Unit
+                        }
+                        // 添加/编辑服务器弹 Dialog，背景透出当前 tab
+                        if (r is Route.Edit) {
+                            EditScreen(
+                                id = r.id, store = store, keyStore = keyStore,
+                                onDone = { route = returnRoute },
+                                onCancel = { route = returnRoute }
+                            )
                         }
                     }
                 }
@@ -310,39 +324,56 @@ private fun FullContent(
                 onBack()
             }
         }
-        is Route.ServerManage -> ServersScreen(
-            store = store,
-            onAdd = { navEdit(0, route) },
-            onOpen = { /* 在管理页点行不进终端，保持管理语义 */ },
-            onEdit = { navEdit(it, route) },
-            onSftp = { },
-            onDocker = { },
-            onBack = onBack
-        )
-        is Route.Scripts -> ScriptScreen(
-            store = scriptStore, servers = servers, onBack = onBack
-        )
-        is Route.Keys -> KeyScreen(
-            store = keyStore, onBack = onBack
-        )
-        is Route.AiChat -> AiChatScreen(onBack = onBack)
-        is Route.Forward -> ForwardScreen(
-            store = forwardStore, manager = forwardManager,
-            servers = servers, onBack = onBack
-        )
-        is Route.Notify -> NotifyScreen(
-            store = alertStore, servers = servers, onBack = onBack
-        )
-        is Route.Search -> SearchScreen(
-            servers = servers,
-            onOpenSession = { id -> navSession(id, route) },
-            onBack = onBack
-        )
+        // 设置页子项：弹 Dialog 小卡片，背景保留设置页
+        is Route.ServerManage, is Route.Scripts, is Route.Keys, is Route.AiChat,
+        is Route.Forward, is Route.Notify, is Route.Search -> {
+            // 背景：设置页（不可交互，被 Dialog 挡住）
+            MoreScreen(
+                onServers = {}, onScripts = {}, onKeys = {}, onAiChat = {},
+                onForward = {}, onNotify = {}, onSearch = {}
+            )
+            Dialog(onDismissRequest = onBack) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.9f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    when (route) {
+                        is Route.ServerManage -> ServersScreen(
+                            store = store,
+                            onAdd = { navEdit(0, route) },
+                            onOpen = { },
+                            onEdit = { navEdit(it, route) },
+                            onSftp = { },
+                            onDocker = { },
+                            onBack = onBack
+                        )
+                        is Route.Scripts -> ScriptScreen(
+                            store = scriptStore, servers = servers, onBack = onBack
+                        )
+                        is Route.Keys -> KeyScreen(
+                            store = keyStore, onBack = onBack
+                        )
+                        is Route.AiChat -> AiChatScreen(onBack = onBack)
+                        is Route.Forward -> ForwardScreen(
+                            store = forwardStore, manager = forwardManager,
+                            servers = servers, onBack = onBack
+                        )
+                        is Route.Notify -> NotifyScreen(
+                            store = alertStore, servers = servers, onBack = onBack
+                        )
+                        is Route.Search -> SearchScreen(
+                            servers = servers,
+                            onOpenSession = { id -> navSession(id, route) },
+                            onBack = onBack
+                        )
+                        else -> Unit
+                    }
+                }
+            }
+        }
         is Route.LocalFiles -> LocalFilesScreen(onBack = onBack)
-        is Route.Edit -> EditScreen(
-            id = route.id, store = store, keyStore = keyStore,
-            onDone = onBack, onCancel = onBack
-        )
         else -> Unit
     }
     }
