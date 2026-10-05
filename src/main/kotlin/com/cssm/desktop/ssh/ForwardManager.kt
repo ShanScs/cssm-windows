@@ -1,9 +1,4 @@
 package com.cssm.desktop.ssh
-import org.bouncycastle.openssl.PEMParser
-import org.bouncycastle.openssl.PEMKeyPair
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter
-import java.io.StringReader
-import java.io.StringWriter
 
 import com.cssm.desktop.data.ForwardRule
 import com.cssm.desktop.data.Server
@@ -30,24 +25,6 @@ import kotlin.coroutines.coroutineContext
  * listen() 阻塞在 IO 线程，停止时关闭 ServerSocket 即可退出。
  */
 
-/** PKCS#1 (BEGIN RSA PRIVATE KEY) 转 PKCS#8，sshj 才能读 */
-private fun convertPkcs1ToPkcs8(pem: String): String {
-    if (!pem.contains("BEGIN RSA PRIVATE KEY")) return pem
-    return try {
-        val parser = PEMParser(StringReader(pem))
-        val obj = parser.readObject()
-        parser.close()
-        val keyPair = obj as PEMKeyPair
-        val info = keyPair.privateKeyInfo
-        val sw = StringWriter()
-        val pw = JcaPEMWriter(sw)
-        pw.writeObject(info)
-        pw.close()
-        sw.toString()
-    } catch (_: Exception) {
-        pem
-    }
-}
 
 class ForwardManager {
 
@@ -88,7 +65,7 @@ class ForwardManager {
                 val kp: KeyProvider = run {
                     val tmp = java.io.File.createTempFile("cssm_key_", ".pem")
                     try {
-                        tmp.writeText(convertPkcs1ToPkcs8(server.privateKey.trim()))
+                        tmp.writeText(server.privateKey.trim())
                         c.loadKeys(tmp.absolutePath, server.keyPassphrase.ifBlank { "" })
                     } finally {
                         try { tmp.delete() } catch (_: Exception) {}
