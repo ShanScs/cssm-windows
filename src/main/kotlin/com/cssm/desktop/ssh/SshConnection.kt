@@ -43,10 +43,16 @@ class SshConnection {
             c.connectTimeout = 15_000
             c.connect(server.host, server.port)
             if (server.authType == Server.AUTH_KEY && server.privateKey.isNotBlank()) {
-                val kp: KeyProvider = c.loadKeys(
-                    server.privateKey,
-                    server.keyPassphrase.ifBlank { "" }
-                )
+                // sshj 的 loadKeys 只认文件路径，密钥内容先写临时文件
+                val kp: KeyProvider = run {
+                    val tmp = java.io.File.createTempFile("cssm_key_", ".pem")
+                    try {
+                        tmp.writeText(server.privateKey.trim())
+                        c.loadKeys(tmp.absolutePath, server.keyPassphrase.ifBlank { "" })
+                    } finally {
+                        try { tmp.delete() } catch (_: Exception) {}
+                    }
+                }
                 c.authPublickey(server.username, kp)
             } else {
                 c.authPassword(server.username, server.password)
