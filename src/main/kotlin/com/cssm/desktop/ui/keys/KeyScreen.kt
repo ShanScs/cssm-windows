@@ -23,6 +23,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Arrangement
+import java.awt.FileDialog
+import java.awt.Frame
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -162,6 +166,29 @@ fun KeyScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val dialog = FileDialog(null as Frame?, "选择私钥文件", FileDialog.LOAD)
+                                dialog.isVisible = true
+                                val dir = dialog.directory
+                                val file = dialog.file
+                                if (dir != null && file != null) {
+                                    try {
+                                        pem = java.io.File(dir, file).readText()
+                                    } catch (_: Exception) {}
+                                }
+                                dialog.dispose()
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                        ) {
+                            Text("从文件选择", fontSize = 12.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = pem, onValueChange = { pem = it },
                         label = { Text("私钥（PEM）") },
