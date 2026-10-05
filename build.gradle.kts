@@ -53,7 +53,7 @@ compose.desktop {
             vendor = "Cssm"
             // 原生包版本号要求 MAJOR > 0
             // 注意：release job 用它拼 tag（v<packageVersion>），每次发版必须和 msiPackageVersion 同步递增
-            packageVersion = "1.2.30"
+            packageVersion = "1.2.31"
             windows {
                 menu = true
                 // 安装包/快捷方式图标：构建时由 generateWinIcon 从矢量描述生成，
@@ -68,7 +68,7 @@ compose.desktop {
                 // 这正是开始菜单快捷方式错乱、以及同版本号必须手动卸载的根源。
                 upgradeUuid = "eb72eb1c-d421-4f77-a2ba-1bd24ab9277c"
                 // 每次发版递增：Windows Installer 靠它判断新旧版本做覆盖升级
-                msiPackageVersion = "1.2.30"
+                msiPackageVersion = "1.2.31"
             }
         }
     }
