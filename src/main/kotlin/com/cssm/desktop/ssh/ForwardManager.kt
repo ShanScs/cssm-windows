@@ -34,20 +34,56 @@ import kotlin.coroutines.coroutineContext
 
 /** PKCS#1 (BEGIN RSA PRIVATE KEY) 转 PKCS#8，sshj 才能读 */
 private fun convertPkcs1ToPkcs8(pem: String): String {
-    if (!pem.contains("BEGIN RSA PRIVATE KEY")) return pem
-    return try {
-        val parser = PEMParser(StringReader(pem))
+    val normalized = pem.trim().replace("\r\n", "\n").replace("\r", "\n")
+    if (!normalized.contains("BEGIN RSA PRIVATE KEY")) return normalized
+    // 方法1: BouncyCastle PEMParser
+    try {
+        val parser = PEMParser(StringReader(normalized))
         val obj = parser.readObject()
         parser.close()
-        val keyPair = obj as PEMKeyPair
-        val info = keyPair.privateKeyInfo
-        val sw = StringWriter()
-        val pw = JcaPEMWriter(sw)
-        pw.writeObject(info)
-        pw.close()
-        sw.toString()
-    } catch (_: Exception) {
-        pem
+        val info = when (obj) {
+            is PEMKeyPair -> obj.privateKeyInfo
+            is org.bouncycastle.asn1.pkcs.PrivateKeyInfo -> obj
+            else -> null
+        }
+        if (info != null) {
+            val sw = StringWriter()
+            val pw = JcaPEMWriter(sw)
+            pw.writeObject(info)
+            pw.close()
+            val result = sw.toString()
+            if (result.contains("BEGIN PRIVATE KEY")) return result
+        }
+    } catch (_: Exception) {}
+    // 方法2: 手动构造 PKCS#8 (RSA)
+    try {
+        val b64 = normalized.lines()
+            .filter { !it.startsWith("-----") && it.isNotBlank() }
+            .joinToString("")
+        val pkcs1 = java.util.Base64.getDecoder().decode(b64)
+        // PKCS#8 头: SEQUENCE { INTEGER 0, SEQUENCE { OID rsaEncryption, NULL }, OCTET STRING { pkcs1 } }
+        val rsaOid = byteArrayOf(0x06, 0x09, 0x2A, 0x86.toByte(), 0x48, 0x86.toByte(), 0xF7.toByte(), 0x0D, 0x01, 0x01, 0x01)
+        val algId = byteArrayOf(0x30, 0x0D) + rsaOid + byteArrayOf(0x05, 0x00)
+        val version = byteArrayOf(0x02, 0x01, 0x00)
+        val octet = byteArrayOf(0x04) + encodeLen(pkcs1.size) + pkcs1
+        val body = version + algId + octet
+        val der = byteArrayOf(0x30) + encodeLen(body.size) + body
+        val out = "-----BEGIN PRIVATE KEY-----\n" +
+            java.util.Base64.getEncoder().encodeToString(der).chunked(64).joinToString("\n") +
+            "\n-----END PRIVATE KEY-----\n"
+        return out
+    } catch (_: Exception) {}
+    return normalized
+}
+
+/** DER 长度编码 */
+private fun encodeLen(len: Int): ByteArray {
+    return if (len < 128) byteArrayOf(len.toByte())
+    else {
+        val bytes = mutableListOf<Byte>()
+        var v = len
+        while (v > 0) { bytes.add(0, (v and 0xFF).toByte()); v = v shr 8 }
+        byteArrayOf((0x80 or bytes.size).toByte()) + bytes.toByteArray()
     }
 }
 
