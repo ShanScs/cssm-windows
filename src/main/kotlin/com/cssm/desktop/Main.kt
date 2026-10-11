@@ -159,7 +159,7 @@ fun main() = application {
     }
 
     CssmTheme(themeMode = themeMode) {
-        val windowState = rememberWindowState(width = 1100.dp, height = 720.dp)
+        val windowState = rememberWindowState(width = 1100.dp, height = 825.dp) // iPad 4:3
         Window(
             onCloseRequest = ::exitApplication,
             title = "Cssm",
@@ -170,7 +170,7 @@ fun main() = application {
         ) {
             WindowDisappearDiagnose(windowState)
             val maximized = windowState.placement == WindowPlacement.Maximized
-            val corner = if (maximized) 0.dp else 8.dp
+            val corner = if (maximized) 0.dp else 16.dp // iPad 风格圆角
             // 透明窗口 + Compose 抗锯齿圆角背景（替代 AWT shape 硬裁剪，避免圆角毛边）；
             // 最大化时直角
             Box(modifier = Modifier.fillMaxSize()) {
