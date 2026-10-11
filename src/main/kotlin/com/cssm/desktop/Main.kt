@@ -50,6 +50,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.window.WindowPosition
 import com.cssm.desktop.data.ServerStore
 import com.cssm.desktop.ui.components.AppIconPainter
 import com.cssm.desktop.ui.components.CustomTitleBar
@@ -159,7 +160,7 @@ fun main() = application {
     }
 
     CssmTheme(themeMode = themeMode) {
-        val windowState = rememberWindowState(width = 1100.dp, height = 825.dp) // iPad 4:3
+        val windowState = rememberWindowState(width = 1100.dp, height = 825.dp, position = WindowPosition(Alignment.Center)) // iPad 4:3，居中
         Window(
             onCloseRequest = ::exitApplication,
             title = "Cssm",
